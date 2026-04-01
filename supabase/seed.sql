@@ -1,0 +1,2 @@
+-- Seed data for PISM
+-- Add sample data here if needed

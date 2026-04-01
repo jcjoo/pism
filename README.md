@@ -95,5 +95,4 @@ bun run ios
 
 ---
 
-Desenvolvido com ❤️ por [jcjoo](https://github.com/jcjoo)
 

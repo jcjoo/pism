@@ -7,16 +7,15 @@ import { Feather } from '@expo/vector-icons';
 
 import { Auth, NewSale, Sales } from '../screens';
 import { useAuth } from '../hooks/useAuth';
-import { colors, typography } from '../theme';
+import { colors } from '../theme';
 import { supabase } from '../services/supabase';
 
-// Placeholder for screens not yet implemented
 const PlaceholderScreen = ({ name, onSignOut }: { name: string, onSignOut?: () => void }) => (
   <View style={styles.placeholderContainer}>
     <Text style={styles.placeholderText}>{name}</Text>
     {onSignOut && (
-      <TouchableOpacity 
-        style={styles.signOutButton} 
+      <TouchableOpacity
+        style={styles.signOutButton}
         onPress={onSignOut}
       >
         <Text style={styles.signOutText}>Sair do App</Text>
@@ -43,8 +42,8 @@ function AppTabs() {
         tabBarShowLabel: false,
       })}
     >
-      <Tab.Screen 
-        name="Inicio" 
+      <Tab.Screen
+        name="Inicio"
         options={{
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabItem}>
@@ -56,9 +55,9 @@ function AppTabs() {
       >
         {() => <PlaceholderScreen name="PISM" onSignOut={handleSignOut} />}
       </Tab.Screen>
-      
-      <Tab.Screen 
-        name="NovaVenda" 
+
+      <Tab.Screen
+        name="NovaVenda"
         component={NewSale}
         options={{
           tabBarIcon: ({ color, focused }) => (
@@ -70,8 +69,8 @@ function AppTabs() {
         }}
       />
 
-      <Tab.Screen 
-        name="Vendas" 
+      <Tab.Screen
+        name="Vendas"
         component={Sales}
         options={{
           tabBarIcon: ({ color, focused }) => (
@@ -83,8 +82,8 @@ function AppTabs() {
         }}
       />
 
-      <Tab.Screen 
-        name="Rota" 
+      <Tab.Screen
+        name="Rota"
         options={{
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabItem}>
