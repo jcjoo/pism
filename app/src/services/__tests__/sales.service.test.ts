@@ -1,7 +1,11 @@
 import { salesService } from '../sales.service';
 import { supabase } from '../supabase';
 
-jest.mock('../supabase');
+jest.mock('../supabase', () => ({
+  supabase: {
+    from: jest.fn(),
+  },
+}));
 
 describe('salesService', () => {
   beforeEach(() => {
@@ -10,12 +14,13 @@ describe('salesService', () => {
 
   describe('getSales', () => {
     it('should call supabase with correct query when no filters are provided', async () => {
-      const mockData = [{ id: '1', total: 100 }];
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          order: jest.fn().mockResolvedValue({ data: mockData, error: null }),
-        }),
-      });
+      const mockData = [{ id: '1', clientId: '1' }];
+      const mockQuery = {
+        select: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        then: jest.fn((resolve) => resolve({ data: mockData, error: null })),
+      };
+      (supabase.from as jest.Mock).mockReturnValue(mockQuery);
 
       const result = await salesService.getSales({});
 
@@ -28,7 +33,8 @@ describe('salesService', () => {
       const mockQuery = {
         select: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+        eq: jest.fn().mockReturnThis(),
+        then: jest.fn((resolve) => resolve({ data: [], error: null })),
       };
       (supabase.from as jest.Mock).mockReturnValue(mockQuery);
 
@@ -39,11 +45,12 @@ describe('salesService', () => {
 
     it('should throw error when supabase returns error', async () => {
       const mockError = new Error('Supabase error');
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          order: jest.fn().mockResolvedValue({ data: null, error: mockError }),
-        }),
-      });
+      const mockQuery = {
+        select: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        then: jest.fn((resolve) => resolve({ data: null, error: mockError })),
+      };
+      (supabase.from as jest.Mock).mockReturnValue(mockQuery);
 
       await expect(salesService.getSales({})).rejects.toThrow('Supabase error');
     });
@@ -51,7 +58,7 @@ describe('salesService', () => {
 
   describe('create', () => {
     it('should create a sale and its items', async () => {
-      const sale = { total: 100, clientId: '1' } as any;
+      const sale = { clientId: '1', dueDate: '2023-01-01' } as any;
       const items = [{ product_id: 'p1', quantity: 1, price: 100 }];
       const saleData = { id: 'sale-123', ...sale };
 
