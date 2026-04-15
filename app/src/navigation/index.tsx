@@ -9,6 +9,7 @@ import { Auth, NewSale, Sales } from '../screens';
 import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme';
 import { supabase } from '../services/supabase';
+import { DateTime } from '../components/DateTime'
 
 const PlaceholderScreen = ({ name, onSignOut }: { name: string, onSignOut?: () => void }) => (
   <View style={styles.placeholderContainer}>
@@ -21,7 +22,14 @@ const PlaceholderScreen = ({ name, onSignOut }: { name: string, onSignOut?: () =
         <Text style={styles.signOutText}>Sair do App</Text>
       </TouchableOpacity>
     )}
+    <DateTime
+        value={new Date()}
+        mode="date"
+        onDateChange={()=>{}} 
+        buttonTitle="Escolher Dia"
+      /> 
   </View>
+  //DateTime esta para teste de aparencia, porem nao consegui testar pois nao aparece no computador
 );
 
 const Tab = createBottomTabNavigator();
