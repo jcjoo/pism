@@ -23,11 +23,15 @@ const PlaceholderScreen = ({ name, onSignOut }: { name: string, onSignOut?: () =
       </TouchableOpacity>
     )}
     <DateTime
-        value={new Date()}
-        mode="date"
-        onDateChange={()=>{}} 
-        buttonTitle="Escolher Dia"
-      /> 
+      value={new Date()}
+      mode="date"
+      onDateChange={() => { }}
+    />
+    <DateTime
+      value={new Date()}
+      mode="time"
+      onDateChange={() => { }}
+    />
   </View>
   //DateTime esta para teste de aparencia, porem nao consegui testar pois nao aparece no computador
 );
