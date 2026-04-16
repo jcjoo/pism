@@ -166,12 +166,6 @@ export function Sales() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Consultar Vendas</Text>
-        <TouchableOpacity>
-          <Feather name="menu" size={28} color={colors.primary.dark} />
-        </TouchableOpacity>
-      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
 
@@ -373,8 +367,6 @@ export function Sales() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.light.main },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 },
-  headerTitle: { fontSize: parseInt(typography.sizes.h3, 10) || 28, fontWeight: 'bold', color: colors.primary.dark },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 100 },
   row: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
   flexItem: { flex: 1 },

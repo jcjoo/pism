@@ -154,13 +154,6 @@ export function NewSale() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Cadastrar nova venda.</Text>
-        <TouchableOpacity>
-          <Feather name="menu" size={28} color={colors.primary.dark} />
-        </TouchableOpacity>
-      </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent}>
 
         {/* Step 1: Client Selection */}
@@ -321,19 +314,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.light.main,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 60, // status bar roughly
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: parseInt(typography.sizes.h3, 10) || 28,
-    fontWeight: 'bold',
-    color: colors.primary.dark,
   },
   scrollContent: {
     paddingHorizontal: 24,

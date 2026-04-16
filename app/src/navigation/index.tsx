@@ -10,6 +10,10 @@ import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme';
 import { supabase } from '../services/supabase';
 import { DateTime } from '../components/DateTime'
+import Header from './header';
+import Menu from './menu';
+import Clients from '@/screens/Clients';
+import Products from '@/screens/Products';
 
 const PlaceholderScreen = ({ name, onSignOut }: { name: string, onSignOut?: () => void }) => (
   <View style={styles.placeholderContainer}>
@@ -33,7 +37,6 @@ const PlaceholderScreen = ({ name, onSignOut }: { name: string, onSignOut?: () =
       onDateChange={() => { }}
     />
   </View>
-  //DateTime esta para teste de aparencia, porem nao consegui testar pois nao aparece no computador
 );
 
 const Tab = createBottomTabNavigator();
@@ -47,7 +50,8 @@ function AppTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
+        headerShown: true,
+        header: (props) => <Header {...props} />,
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: colors.primary.dark,
         tabBarInactiveTintColor: colors.primary.main,
@@ -57,6 +61,7 @@ function AppTabs() {
       <Tab.Screen
         name="Inicio"
         options={{
+          headerTitle: 'PISM',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabItem}>
               <Feather name="home" size={20} color={color} />
@@ -72,6 +77,7 @@ function AppTabs() {
         name="NovaVenda"
         component={NewSale}
         options={{
+          headerTitle: 'Cadastrar nova venda.',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabItem}>
               <Feather name="shopping-bag" size={20} color={color} />
@@ -85,6 +91,7 @@ function AppTabs() {
         name="Vendas"
         component={Sales}
         options={{
+          headerTitle: 'Consultar Vendas',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabItem}>
               <Feather name="dollar-sign" size={20} color={color} />
@@ -97,6 +104,7 @@ function AppTabs() {
       <Tab.Screen
         name="Rota"
         options={{
+          headerTitle: 'Rota',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabItem}>
               <Feather name="map" size={20} color={color} />
@@ -128,7 +136,24 @@ export function Navigation() {
         {!session ? (
           <Stack.Screen name="Auth" component={Auth} />
         ) : (
-          <Stack.Screen name="App" component={AppTabs} />
+          <>
+            <Stack.Screen name="App" component={AppTabs} />
+            <Stack.Screen
+              name="Menu"
+              component={Menu}
+
+            />
+            <Stack.Screen
+              name="Clients"
+              component={Clients}
+
+            />
+            <Stack.Screen
+              name="Products"
+              component={Products}
+
+            />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
