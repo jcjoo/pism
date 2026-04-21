@@ -17,8 +17,6 @@ export function Products() {
     const navigation = useNavigation()
     // Data for Selectors
     const [productsList, setProductsList] = useState<Product[]>([]);
-    // Filters
-    const [filterProduct, setFilterProduct] = useState<Product | null>(null);
     //Variaveis para exibir o Modal
     const [modalVisible, setModalVisible] = useState(false);
     const [modalType, setModalType] = useState<'cliente' | 'product'>('cliente');
@@ -85,7 +83,7 @@ export function Products() {
                     <ScrollView contentContainerStyle={styles.scrollContent}>
                         <Select
                             label="Mercadoria"
-                            value={filterProduct?.name || ''}
+                            value={''}
                             placeholder="Todas as Mercadorias"
                             onPress={() => { setModalType('product'); setModalVisible(true); }}
                         />

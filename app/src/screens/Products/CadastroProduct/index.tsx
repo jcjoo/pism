@@ -41,6 +41,13 @@ export default function CadastroProduct({ product, step, onCancelCadastrar, onCa
         }
     }, []);
     const onGravar = () => {
+        const { name, price, stock } = dadosProduct;
+
+        // Validação enxuta
+        if (!name?.trim() || !String(price ?? '').trim() || !String(stock ?? '').trim()) {
+            return alert('Erro: Cadastro incompleto!');
+        }
+
         setDadosProduct(PrevState => ({ ...PrevState, price: dadosProduct.price?.toFixed(2) as any }))
         if (step === 'edit') {
             alert('Produto alterado com sucesso! ✅');
@@ -112,7 +119,7 @@ const styles = StyleSheet.create({
     inputFlex: {
         flex: 1
     },
-    container: { flex: 1, backgroundColor: colors.light.main, paddingTop: 24, marginHorizontal: 24 },
+    container: { flex: 1, backgroundColor: colors.light.main, paddingTop: 24, marginHorizontal: 24, justifyContent: 'center', },
     backButton: { marginHorizontal: 24, marginBottom: 16 },
     scrollContentInner: { paddingHorizontal: 24, paddingBottom: 100 },
     scrollContent: { paddingHorizontal: 24, paddingBottom: 100 },

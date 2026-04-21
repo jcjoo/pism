@@ -8,7 +8,7 @@ export function Input({ style, ...rest }: InputProps) {
   return (
     <View style={[styles.container, style]}>
       <TextInput
-        style={styles.input}
+        style={[styles.input, style]}
         placeholderTextColor={colors.primary.main}
         {...rest}
       />

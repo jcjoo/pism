@@ -22,6 +22,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          cpf: string
           name: string
           phone: string | null
           state: string | null
@@ -165,6 +166,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      estado: {
+        Row: {
+          codigouf: number
+          id: number
+          nome: string
+          regiao: number
+          uf: string
+        }
+        Insert: {
+          codigouf: number
+          id?: number
+          nome: string
+          regiao: number
+          uf: string
+        }
+        Update: {
+          codigouf?: number
+          id?: number
+          nome?: string
+          regiao?: number
+          uf?: string
+        }
+        Relationships: []
+      }
+      municipio: {
+        Row: {
+          codigo: number
+          id: number
+          nome: string
+          uf: string
+        }
+        Insert: {
+          codigo: number
+          id?: number
+          nome: string
+          uf: string
+        }
+        Update: {
+          codigo?: number
+          id?: number
+          nome?: string
+          uf?: string
+        }
+        Relationships: []
       }
     }
     Views: {

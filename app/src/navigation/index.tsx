@@ -5,14 +5,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import { Auth, NewSale, Sales, Products } from '../screens';
+import { Auth, NewSale, Sales, Products, Clients } from '../screens';
 import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme';
 import { supabase } from '../services/supabase';
 import { DateTime } from '../components/DateTime'
 import Header from './header';
 import Menu from './menu';
-import Clients from '@/screens/Clients';
 
 const PlaceholderScreen = ({ name, onSignOut }: { name: string, onSignOut?: () => void }) => (
   <View style={styles.placeholderContainer}>
