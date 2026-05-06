@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '@/theme';
 import { useNavigation } from '@react-navigation/native';
+import { supabase } from '../services/supabase';
 
 export default function Menu() {
     const navigation = useNavigation()
@@ -12,6 +13,7 @@ export default function Menu() {
         { label: 'Perfil' },
         { label: 'Conta' },
         { label: 'Configurações' },
+        { label: 'Sair do App', action: () => supabase.auth.signOut() },
     ];
 
     return (
@@ -25,8 +27,14 @@ export default function Menu() {
 
             <View style={styles.menuItems}>
                 {menuItems.map((item, index) => (
-                    <TouchableOpacity key={index} style={styles.item}>
-                        <Text style={styles.itemText} onPress={() => navigation.navigate(item.screen as never)}>{item.label}</Text>
+                    <TouchableOpacity key={index} style={styles.item} onPress={() => {
+                        if (item.screen) {
+                            navigation.navigate('App' as never, { screen: item.screen } as never);
+                        } else if (item.action) {
+                            item.action();
+                        }
+                    }}>
+                        <Text style={styles.itemText}>{item.label}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
