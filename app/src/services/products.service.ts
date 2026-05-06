@@ -4,12 +4,17 @@ import { Tables, TablesInsert, TablesUpdate } from '../types/database.types';
 export type Product = Tables<'products'>;
 
 export const productsService = {
-  async getAll() {
-    const { data, error } = await supabase
+  async getAll(includeArchived = false) {
+    let query = supabase
       .from('products')
       .select('*')
       .order('name');
 
+    if (!includeArchived) {
+      query = query.eq('is_archived', false);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
@@ -23,6 +28,46 @@ export const productsService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async hasSales(id: string) {
+    const { count, error } = await supabase
+      .from('sale_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('product_id', id);
+    
+    if (error) throw error;
+    return (count || 0) > 0;
+  },
+
+  async archive(id: string) {
+    const { error } = await supabase
+      .from('products')
+      .update({ is_archived: true })
+      .eq('id', id);
+    
+    if (error) throw error;
+    return 'Sucesso';
+  },
+
+  async unarchive(id: string) {
+    const { error } = await supabase
+      .from('products')
+      .update({ is_archived: false })
+      .eq('id', id);
+    
+    if (error) throw error;
+    return 'Sucesso';
+  },
+
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return 'Sucesso';
   },
 
   async create(product: TablesInsert<'products'>) {

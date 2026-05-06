@@ -35,4 +35,26 @@ export const enderecoService = {
     if (error) throw error;
     return data;
   },
+
+  async getMunicipioById(id: number) {
+    const { data, error } = await supabase
+      .from('municipio')
+      .select('*, estado(*)')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async getEstadoById(id: number) {
+    const { data, error } = await supabase
+      .from('estado')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
 };

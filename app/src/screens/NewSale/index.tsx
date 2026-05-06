@@ -31,6 +31,7 @@ export function NewSale() {
   const [dueDate, setDueDate] = useState<Date | null>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [paymentMode, setPaymentMode] = useState('À vista');
+  const paymentOptions = ['À vista', '2x', '3x', '4x', '5x', '6x'];
   const [observation, setObservation] = useState('');
 
   useEffect(() => {
@@ -95,8 +96,17 @@ export function NewSale() {
 
   const [loading, setLoading] = useState(false);
 
-  const switchPaymentMode = () => {
-    setPaymentMode(prev => prev === 'À vista' ? '2x' : prev === '2x' ? '3x' : 'À vista');
+  const switchPaymentMode = (_: number, direction: 'up' | 'down') => {
+    setPaymentMode(prev => {
+      const index = paymentOptions.indexOf(prev);
+      let nextIndex;
+      if (direction === 'up') {
+        nextIndex = (index + 1) % paymentOptions.length;
+      } else {
+        nextIndex = (index - 1 + paymentOptions.length) % paymentOptions.length;
+      }
+      return paymentOptions[nextIndex];
+    });
   };
 
   const handleRegisterSale = async () => {
@@ -238,7 +248,8 @@ export function NewSale() {
               <View style={{ width: 8 }} />
               <QuantitySelector
                 label={paymentMode}
-                value={0}
+                value={1}
+                min={0}
                 onChange={switchPaymentMode}
               />
             </View>

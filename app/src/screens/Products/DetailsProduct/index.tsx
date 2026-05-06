@@ -16,64 +16,140 @@ interface newProductProps {
     },
     onCancelEditar: () => void
     onEditarProduto: () => void
+    onDeletarProduto: () => void
 }
 
-export default function DetailsProduct({ product, onCancelEditar, onEditarProduto }: newProductProps) {
+export default function DetailsProduct({ product, onCancelEditar, onEditarProduto, onDeletarProduto }: newProductProps) {
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-
-            <TouchableOpacity onPress={() => onCancelEditar()}>
-                <Feather name="arrow-left" size={24} color="black" />
-            </TouchableOpacity>
+        <View style={styles.container}>
             <View style={styles.detailsCard}>
-                <Text style={styles.detailsClient}>{product?.name}</Text>
+                <View style={styles.iconContainer}>
+                    <Feather name="package" size={40} color={colors.primary.main} />
+                </View>
+                <Text style={styles.detailsName}>{product?.name}</Text>
+                <Text style={styles.detailsPrice}>
+                    R$ {product?.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </Text>
 
-                <Text style={styles.detailsTotal}>R$ {product?.price}</Text>
+                <View style={styles.infoRow}>
+                    <Feather name="info" size={16} color={colors.primary.light} />
+                    <Text style={styles.detailsDescription}>{product?.description || 'Sem descrição'}</Text>
+                </View>
 
-                <Text style={styles.detailsDates}>Descrição: {product?.description}</Text>
-                <Text style={styles.detailsAddress}>{product?.stock} em estoque</Text>
+                <View style={styles.stockInfo}>
+                    <Text style={styles.stockLabel}>Estoque Atual</Text>
+                    <Text style={[
+                        styles.stockValue,
+                        { color: (product?.stock || 0) > 0 ? '#2E7D32' : '#C62828' }
+                    ]}>
+                        {product?.stock || 0} unidades
+                    </Text>
+                </View>
             </View>
 
-            <View style={[styles.row, { marginTop: 16 }]}>
-                <Button title="Voltar" variant="primary" style={styles.flexItem} onPress={() => onCancelEditar()} />
-                <View style={{ width: 8 }} />
-                <Button title="Editar" variant="primary-dark" style={styles.flexItem} onPress={() => onEditarProduto()} />
+            <View style={styles.actionButtons}>
+                <Button
+                    title="Editar Produto"
+                    variant="primary-dark"
+                    onPress={() => onEditarProduto()}
+                    icon={<Feather name="edit-2" size={18} color={colors.light.main} />}
+                />
+                <View style={{ height: 12 }} />
+                <Button
+                    title="Excluir / Arquivar"
+                    variant="primary"
+                    onPress={() => onDeletarProduto()}
+                    style={{ backgroundColor: colors.danger.main }}
+                    icon={<Feather name="trash-2" size={18} color={colors.light.main} />}
+                />
+                <View style={{ height: 12 }} />
+                <Button
+                    title="Voltar para Lista"
+                    variant="secondary"
+                    onPress={() => onCancelEditar()}
+                />
             </View>
-        </KeyboardAvoidingView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.light.main, marginHorizontal: 24, justifyContent: 'center' },
-    scrollContent: { paddingHorizontal: 24, paddingBottom: 100 },
-    row: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
-    flexItem: { flex: 1 },
-    listContainer: { backgroundColor: colors.light.dark, borderRadius: 8, padding: 16, marginTop: 16 },
-    listHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    listTitle: { color: colors.primary.dark, fontWeight: 'bold', fontSize: 16 },
-    listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.light.main },
-    listIdx: { color: colors.primary.main, width: 20 },
-    listName: { color: colors.primary.dark, flex: 1, marginRight: 8 },
-    listDate: { color: colors.primary.main, fontSize: 12, marginRight: 8 },
-    listPrice: { color: colors.primary.main, fontWeight: 'bold' },
-    emptyText: { textAlign: 'center', color: colors.primary.main, marginTop: 24 },
-    detailsCard: { backgroundColor: colors.light.dark, borderRadius: 8, padding: 24, alignItems: 'center', marginTop: 16},
-    detailsClient: { fontSize: 20, fontWeight: typography.weights.bold as any, color: colors.primary.dark, textAlign: 'center'},
-    detailsAddress: { fontSize: 15, color: colors.primary.dark, textAlign: 'center', marginVertical: 24, fontWeight: 700 },
-    detailsTotal: { fontSize: 24, fontWeight: typography.weights.black as any, color: colors.primary.dark, marginBottom: 24, marginTop: 24},
-    detailsItem: { color: colors.primary.main, fontSize: 14, marginBottom: 4 },
-    detailsDates: { color: colors.primary.main, fontSize: 12, marginTop: 24 },
-    cartContainer: { marginTop: 16, padding: 16, backgroundColor: colors.light.dark, borderRadius: 8 },
-    editCartItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    cartItemText: { fontSize: 14, color: colors.primary.dark, fontWeight: 'bold' },
-    cartItemRemove: { fontSize: 12, color: colors.primary.main, textDecorationLine: 'underline' },
-    cartTotalText: { fontSize: 16, color: colors.primary.dark, fontWeight: 'bold', marginTop: 12, marginBottom: 8 },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
-    modalContent: { backgroundColor: colors.light.main, borderRadius: 8, padding: 24, maxHeight: '80%' },
-    modalTitle: { fontSize: 20, fontWeight: 'bold', color: colors.primary.dark, marginBottom: 16, textAlign: 'center' },
-    modalItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.light.dark },
-    modalItemText: { fontSize: 16, color: colors.primary.main },
-    modalEmpty: { textAlign: 'center', color: colors.primary.main, marginVertical: 16 }
+    container: { 
+        flex: 1, 
+        backgroundColor: colors.light.main, 
+        paddingHorizontal: 24, 
+        paddingTop: 20 
+    },
+    detailsCard: { 
+        backgroundColor: colors.light.main, 
+        borderRadius: 20, 
+        padding: 24, 
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.light.dark,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+    iconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#F0F4FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    detailsName: { 
+        fontSize: 24, 
+        fontWeight: 'bold', 
+        color: colors.primary.dark, 
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    detailsPrice: { 
+        fontSize: 28, 
+        fontWeight: '900', 
+        color: colors.primary.main, 
+        marginBottom: 24 
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        width: '100%',
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: colors.light.dark,
+    },
+    detailsDescription: { 
+        fontSize: 14, 
+        color: colors.primary.light, 
+        marginLeft: 8,
+        flex: 1,
+    },
+    stockInfo: {
+        width: '100%',
+        marginTop: 16,
+        padding: 16,
+        backgroundColor: colors.light.dark,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    stockLabel: {
+        fontSize: 12,
+        color: colors.primary.light,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+    stockValue: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    actionButtons: {
+        marginTop: 'auto',
+        marginBottom: 40,
+    },
 });
