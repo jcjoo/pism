@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, KeyboardAvoidingView, ScrollView,
+  View, Text, KeyboardAvoidingView, ScrollView,
   Platform, TouchableOpacity, Modal, FlatList, Alert, TextInput,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Input, Button, QuantitySelector, Select } from '@/components';
-import { colors, typography } from '@/theme';
 
 import { clientsService, Client } from '@/services/clients.service';
 import { productsService, Product } from '@/services/products.service';
@@ -16,15 +15,13 @@ import { recebimentosService } from '@/services/recebimentos.service';
 type Step = 'filter' | 'list' | 'details' | 'edit';
 type StatusFilter = 'all' | 'pending' | 'received';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 const renderPrice = (val: number) => `R$ ${val.toFixed(2).replace('.', ',')}`;
 const formatDate  = (d: Date | null | string) => d ? new Date(d).toLocaleDateString('pt-BR') : '';
 const calcTotal   = (items: any[]) => items.reduce((a, i) => a + i.price * i.quantity, 0);
 
 const getDaysUntilDue = (dueDate: string) => {
-  const due  = new Date(dueDate); due.setHours(0, 0, 0, 0);
-  const now  = new Date();        now.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate); due.setHours(0, 0, 0, 0);
+  const now = new Date();        now.setHours(0, 0, 0, 0);
   return Math.ceil((due.getTime() - now.getTime()) / 86400000);
 };
 
@@ -33,21 +30,19 @@ type DueStatus = 'received' | 'overdue' | 'today' | 'soon' | 'ok';
 function getDueStatus(sale: any): DueStatus {
   if (sale.received_at) return 'received';
   const d = getDaysUntilDue(sale.dueDate);
-  if (d < 0)  return 'overdue';
+  if (d < 0)   return 'overdue';
   if (d === 0) return 'today';
   if (d <= 5)  return 'soon';
   return 'ok';
 }
 
 const STATUS_CONFIG: Record<DueStatus, { label: string; color: string; bg: string }> = {
-  received: { label: 'Recebido',    color: '#1B8A3D', bg: '#E6F7EC' },
-  overdue:  { label: 'Atrasado',    color: colors.danger.main, bg: '#FFF0F0' },
-  today:    { label: 'Vence hoje',  color: '#B86E00', bg: '#FFF8E6' },
-  soon:     { label: 'Vence em breve', color: colors.secondary.dark, bg: '#F6FBEA' },
-  ok:       { label: 'A receber',   color: colors.primary.main, bg: colors.light.main },
+  received: { label: 'Recebido',       color: '#1B8A3D', bg: '#E6F7EC' },
+  overdue:  { label: 'Atrasado',       color: '#DF1515', bg: '#FFF0F0' },
+  today:    { label: 'Vence hoje',     color: '#B86E00', bg: '#FFF8E6' },
+  soon:     { label: 'Vence em breve', color: '#758C36', bg: '#F6FBEA' },
+  ok:       { label: 'A receber',      color: '#5A189A', bg: '#EAE3F0' },
 };
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export function Sales() {
   const [step, setStep] = useState<Step>('filter');
@@ -56,7 +51,6 @@ export function Sales() {
   const [clientsList,  setClientsList]  = useState<Client[]>([]);
   const [productsList, setProductsList] = useState<Product[]>([]);
 
-  // Filters
   const [filterClient,  setFilterClient]  = useState<Client | null>(null);
   const [filterProduct, setFilterProduct] = useState<Product | null>(null);
   const [statusFilter,  setStatusFilter]  = useState<StatusFilter>('all');
@@ -68,22 +62,18 @@ export function Sales() {
   const [dueStart,  setDueStart]  = useState<Date | null>(null);
   const [dueEnd,    setDueEnd]    = useState<Date | null>(null);
 
-  // Results
   const [salesData,    setSalesData]    = useState<any[]>([]);
   const [selectedSale, setSelectedSale] = useState<any>(null);
 
-  // Edit sale
   const [editCart,        setEditCart]        = useState<any[]>([]);
   const [editDueDate,     setEditDueDate]     = useState<Date | null>(new Date());
   const [editPaymentMode, setEditPaymentMode] = useState('À vista');
 
-  // Edit receipt
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [receiptDate,         setReceiptDate]         = useState(new Date());
   const [receiptAmount,       setReceiptAmount]       = useState('');
   const [savingReceipt,       setSavingReceipt]       = useState(false);
 
-  // Modal
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType,    setModalType]    = useState<'cliente' | 'product'>('cliente');
 
@@ -96,8 +86,6 @@ export function Sales() {
     };
     load();
   }, []);
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
 
   const handleFetchSales = async () => {
     setLoading(true);
@@ -130,8 +118,6 @@ export function Sales() {
     }
   };
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
-
   const handleDelete = async () => {
     Alert.alert('Atenção', 'Deseja apagar esta venda?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -151,8 +137,6 @@ export function Sales() {
     ]);
   };
 
-  // ── Edit ───────────────────────────────────────────────────────────────────
-
   const startEdit = () => {
     setEditCart(selectedSale.sale_items.map((si: any) => ({
       id: si.id, product: si.products, quantity: si.quantity, price: si.price,
@@ -169,8 +153,6 @@ export function Sales() {
 
   const switchPayment = () =>
     setEditPaymentMode(p => p === 'À vista' ? '2x' : p === '2x' ? '3x' : 'À vista');
-
-  // ── Receipt actions ────────────────────────────────────────────────────────
 
   const openEditReceipt = () => {
     setReceiptDate(selectedSale.received_at ? new Date(selectedSale.received_at) : new Date());
@@ -229,35 +211,31 @@ export function Sales() {
     setModalVisible(false);
   };
 
-  // ── List summary ───────────────────────────────────────────────────────────
-
   const totalAll      = salesData.reduce((a, s) => a + calcTotal(s.sale_items), 0);
   const totalReceived = salesData.filter(s => s.received_at)
     .reduce((a, s) => a + (s.received_amount ?? calcTotal(s.sale_items)), 0);
   const totalPending  = salesData.filter(s => !s.received_at)
     .reduce((a, s) => a + calcTotal(s.sale_items), 0);
 
-  // ── Chip ───────────────────────────────────────────────────────────────────
-
   const StatusChip = ({ label, val }: { label: string; val: StatusFilter }) => (
     <TouchableOpacity
-      style={[styles.chip, statusFilter === val && styles.chipOn]}
+      className={statusFilter === val ? 'filter-chip-active' : 'filter-chip'}
       onPress={() => setStatusFilter(val)}
     >
-      <Text style={[styles.chipTxt, statusFilter === val && styles.chipTxtOn]}>{label}</Text>
+      <Text className={`text-xs font-semibold ${statusFilter === val ? 'text-white' : 'text-primary'}`}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      className="screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}>
 
-        {/* ── FILTER ───────────────────────────────────────────────────── */}
+        {/* FILTER */}
         {step === 'filter' && (
           <View>
             <Select
@@ -273,36 +251,37 @@ export function Sales() {
               onPress={() => { setModalType('product'); setModalVisible(true); }}
             />
 
-            <View style={styles.row}>
-              <Select label="Venda de" value={formatDate(dateStart)} onPress={() => { setDateFieldTarget('dateStart'); setShowDatePicker(true); }} style={styles.flex} />
-              <View style={{ width: 8 }} />
-              <Select label="Venda até" value={formatDate(dateEnd)} onPress={() => { setDateFieldTarget('dateEnd'); setShowDatePicker(true); }} style={styles.flex} />
+            <View className="flex-row items-center my-1">
+              <Select label="Venda de" value={formatDate(dateStart)} onPress={() => { setDateFieldTarget('dateStart'); setShowDatePicker(true); }} className="flex-1" />
+              <View className="w-2" />
+              <Select label="Venda até" value={formatDate(dateEnd)} onPress={() => { setDateFieldTarget('dateEnd'); setShowDatePicker(true); }} className="flex-1" />
             </View>
-            <View style={styles.row}>
-              <Select label="Venc. de" value={formatDate(dueStart)} onPress={() => { setDateFieldTarget('dueStart'); setShowDatePicker(true); }} style={styles.flex} />
-              <View style={{ width: 8 }} />
-              <Select label="Venc. até" value={formatDate(dueEnd)} onPress={() => { setDateFieldTarget('dueEnd'); setShowDatePicker(true); }} style={styles.flex} />
+            <View className="flex-row items-center my-1">
+              <Select label="Venc. de" value={formatDate(dueStart)} onPress={() => { setDateFieldTarget('dueStart'); setShowDatePicker(true); }} className="flex-1" />
+              <View className="w-2" />
+              <Select label="Venc. até" value={formatDate(dueEnd)} onPress={() => { setDateFieldTarget('dueEnd'); setShowDatePicker(true); }} className="flex-1" />
             </View>
 
-            {/* Status filter chips */}
-            <Text style={styles.filterLabel}>Status do recebimento</Text>
-            <View style={styles.chipRow}>
+            <Text className="label-upper mt-3">
+              Status do recebimento
+            </Text>
+            <View className="flex-row gap-2 mb-1">
               <StatusChip label="Todos" val="all" />
               <StatusChip label="A receber" val="pending" />
               <StatusChip label="Recebidos" val="received" />
             </View>
 
-            <View style={[styles.row, { marginTop: 16 }]}>
-              <Button title="Limpar" variant="primary-dark" style={styles.flex} onPress={() => {
+            <View className="flex-row items-center my-1 mt-4">
+              <Button title="Limpar" variant="primary-dark" className="flex-1" onPress={() => {
                 setFilterClient(null); setFilterProduct(null);
                 setDateStart(null); setDateEnd(null); setDueStart(null); setDueEnd(null);
                 setStatusFilter('all');
               }} />
-              <View style={{ width: 8 }} />
+              <View className="w-2" />
               <Button
                 title={loading ? 'Buscando...' : 'Consultar'}
                 variant="secondary"
-                style={styles.flex}
+                className="flex-1"
                 onPress={handleFetchSales}
                 disabled={loading}
               />
@@ -310,34 +289,34 @@ export function Sales() {
           </View>
         )}
 
-        {/* ── LIST ─────────────────────────────────────────────────────── */}
+        {/* LIST */}
         {step === 'list' && (
           <View>
-            {/* Summary cards */}
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Total</Text>
-                <Text style={styles.summaryValue}>{renderPrice(totalAll)}</Text>
+            <View className="flex-row gap-2 mt-4 mb-1">
+              <View className="flex-1 bg-white rounded-[10px] p-2.5 border-l-[3px] border-l-primary elevation-1">
+                <Text className="text-[10px] text-primary font-semibold mb-0.5">Total</Text>
+                <Text className="text-[13px] font-bold text-primary-dark">{renderPrice(totalAll)}</Text>
               </View>
-              <View style={[styles.summaryCard, { borderLeftColor: '#1B8A3D' }]}>
-                <Text style={styles.summaryLabel}>Recebido</Text>
-                <Text style={[styles.summaryValue, { color: '#1B8A3D' }]}>{renderPrice(totalReceived)}</Text>
+              <View className="flex-1 bg-white rounded-[10px] p-2.5 border-l-[3px] border-l-[#1B8A3D] elevation-1">
+                <Text className="text-[10px] text-primary font-semibold mb-0.5">Recebido</Text>
+                <Text className="text-[13px] font-bold text-[#1B8A3D]">{renderPrice(totalReceived)}</Text>
               </View>
-              <View style={[styles.summaryCard, { borderLeftColor: colors.danger.main }]}>
-                <Text style={styles.summaryLabel}>A receber</Text>
-                <Text style={[styles.summaryValue, { color: colors.danger.main }]}>{renderPrice(totalPending)}</Text>
+              <View className="flex-1 bg-white rounded-[10px] p-2.5 border-l-[3px] border-l-danger elevation-1">
+                <Text className="text-[10px] text-primary font-semibold mb-0.5">A receber</Text>
+                <Text className="text-[13px] font-bold text-danger">{renderPrice(totalPending)}</Text>
               </View>
             </View>
 
-            {/* List */}
-            <View style={styles.listContainer}>
-              <View style={styles.listHeader}>
-                <Text style={styles.listTitle}>{salesData.length} venda{salesData.length !== 1 ? 's' : ''}</Text>
-                <Feather name="chevron-up" size={20} color={colors.primary.dark} />
+            <View className="bg-light-dark rounded-[10px] p-4 mt-2">
+              <View className="flex-row justify-between mb-3">
+                <Text className="text-primary-dark font-bold text-base">
+                  {salesData.length} venda{salesData.length !== 1 ? 's' : ''}
+                </Text>
+                <Feather name="chevron-up" size={20} color="#3C096C" />
               </View>
 
               {salesData.length === 0 ? (
-                <Text style={styles.emptyText}>Nenhuma venda encontrada.</Text>
+                <Text className="text-center text-primary mt-6">Nenhuma venda encontrada.</Text>
               ) : (
                 salesData.map((sale, idx) => {
                   const st  = getDueStatus(sale);
@@ -346,26 +325,26 @@ export function Sales() {
                   return (
                     <TouchableOpacity
                       key={sale.id}
-                      style={styles.listItem}
+                      className="flex-row items-center py-2.5 px-2 rounded-lg mb-1.5 bg-light"
                       onPress={() => { setSelectedSale(sale); setStep('details'); }}
                     >
-                      <Text style={styles.listIdx}>{idx + 1}</Text>
-
-                      <View style={{ flex: 1, marginRight: 8 }}>
-                        <Text style={styles.listName} numberOfLines={1}>
+                      <Text className="text-primary-light w-[22px] text-xs">{idx + 1}</Text>
+                      <View className="flex-1 mr-2">
+                        <Text className="text-primary-dark font-bold text-sm" numberOfLines={1}>
                           {sale.clients?.name || 'Cliente deletado'}
                         </Text>
-                        <Text style={styles.listSub} numberOfLines={1}>
+                        <Text className="text-primary text-[11px] mt-0.5" numberOfLines={1}>
                           {formatDate(sale.created_at)}
                           {days !== null && days < 0 && ` · ${Math.abs(days)}d atraso`}
                           {days === 0 && ' · Vence hoje'}
                         </Text>
                       </View>
-
-                      <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                        <Text style={styles.listPrice}>{renderPrice(calcTotal(sale.sale_items))}</Text>
-                        <View style={[styles.statusBadge, { backgroundColor: cfg.color }]}>
-                          <Text style={styles.statusBadgeTxt}>{cfg.label}</Text>
+                      <View className="items-end gap-1">
+                        <Text className="text-[13px] font-bold text-primary-dark">
+                          {renderPrice(calcTotal(sale.sale_items))}
+                        </Text>
+                        <View className="px-1.5 py-0.5 rounded-full" style={{ backgroundColor: cfg.color }}>
+                          <Text className="text-[9px] font-bold text-white">{cfg.label}</Text>
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -374,14 +353,14 @@ export function Sales() {
               )}
             </View>
 
-            <View style={[styles.row, { marginTop: 16 }]}>
-              <Button title="Voltar" variant="primary-dark" style={styles.flex} onPress={() => setStep('filter')} />
-              <Button title="Nova Busca" variant="secondary" style={styles.flex} onPress={() => { setStep('filter'); setSalesData([]); }} />
+            <View className="flex-row items-center my-1 mt-4">
+              <Button title="Voltar" variant="primary-dark" className="flex-1" onPress={() => setStep('filter')} />
+              <Button title="Nova Busca" variant="secondary" className="flex-1" onPress={() => { setStep('filter'); setSalesData([]); }} />
             </View>
           </View>
         )}
 
-        {/* ── DETAILS ──────────────────────────────────────────────────── */}
+        {/* DETAILS */}
         {step === 'details' && selectedSale && (() => {
           const st  = getDueStatus(selectedSale);
           const cfg = STATUS_CONFIG[st];
@@ -389,60 +368,64 @@ export function Sales() {
           const total = calcTotal(selectedSale.sale_items);
           return (
             <View>
-              <View style={[styles.detailsCard, { borderTopWidth: 4, borderTopColor: cfg.color }]}>
-                {/* Client info */}
-                <Text style={styles.detailsClient}>{selectedSale.clients?.name}</Text>
-                <Text style={styles.detailsAddress}>
+              <View
+                className="bg-light-dark rounded-[10px] p-6 items-center mt-4"
+                style={{ borderTopWidth: 4, borderTopColor: cfg.color }}
+              >
+                <Text className="text-xl font-bold text-primary-dark text-center">
+                  {selectedSale.clients?.name}
+                </Text>
+                <Text className="text-xs text-primary text-center mb-5">
                   {selectedSale.clients?.address}
                 </Text>
 
-                {/* Total */}
-                <Text style={styles.detailsTotal}>{renderPrice(total)}</Text>
+                <Text className="text-[28px] font-bold text-primary-dark mb-4">
+                  {renderPrice(total)}
+                </Text>
 
-                {/* Items */}
                 {selectedSale.sale_items.map((item: any) => (
-                  <Text key={item.id} style={styles.detailsItem}>
+                  <Text key={item.id} className="text-primary text-sm mb-1">
                     ({item.quantity}x) {item.products?.name} — {renderPrice(item.price)}
                   </Text>
                 ))}
 
-                {/* Dates */}
-                <Text style={styles.detailsDates}>Data compra: {formatDate(selectedSale.created_at)}</Text>
-                <Text style={styles.detailsDates}>Vencimento: {formatDate(selectedSale.dueDate)}</Text>
+                <Text className="text-primary text-xs mt-4">Data compra: {formatDate(selectedSale.created_at)}</Text>
+                <Text className="text-primary text-xs mt-1">Vencimento: {formatDate(selectedSale.dueDate)}</Text>
 
-                {/* Receipt status block */}
-                <View style={[styles.receiptBlock, { backgroundColor: cfg.bg, borderColor: cfg.color }]}>
+                <View
+                  className="w-full mt-5 p-3.5 rounded-[10px] border"
+                  style={{ backgroundColor: cfg.bg, borderColor: cfg.color }}
+                >
                   {selectedSale.received_at ? (
                     <>
-                      <View style={styles.receiptRow}>
+                      <View className="flex-row items-center gap-2 mb-1.5">
                         <Feather name="check-circle" size={16} color={cfg.color} />
-                        <Text style={[styles.receiptTitle, { color: cfg.color }]}>Recebido</Text>
+                        <Text className="text-sm font-bold" style={{ color: cfg.color }}>Recebido</Text>
                       </View>
-                      <Text style={styles.receiptDetail}>
+                      <Text className="text-[13px] text-primary-dark mb-0.5">
                         Em: {formatDate(selectedSale.received_at)}
                       </Text>
-                      <Text style={styles.receiptDetail}>
+                      <Text className="text-[13px] text-primary-dark mb-0.5">
                         Valor: {renderPrice(selectedSale.received_amount ?? total)}
                       </Text>
                       {selectedSale.received_amount != null &&
                         Math.abs(selectedSale.received_amount - total) > 0.01 && (
-                          <Text style={[styles.receiptDetail, { color: colors.danger.main }]}>
+                          <Text className="text-[13px] text-danger mb-0.5">
                             Diferença: {renderPrice(selectedSale.received_amount - total)}
                           </Text>
                         )}
-                      <View style={[styles.row, { marginTop: 10 }]}>
+                      <View className="flex-row items-center mt-2.5">
                         <Button
                           title="Editar recebimento"
                           variant="primary-light"
-                          style={styles.flex}
+                          className="flex-1"
                           onPress={openEditReceipt}
                           icon={<Feather name="edit-2" size={14} color="#fff" />}
                         />
-                        <View style={{ width: 8 }} />
+                        <View className="w-2" />
                         <Button
                           title="Remover"
                           variant="danger"
-                          style={{ paddingHorizontal: 12 }}
                           onPress={handleRemoveReceipt}
                           disabled={savingReceipt}
                         />
@@ -450,9 +433,9 @@ export function Sales() {
                     </>
                   ) : (
                     <>
-                      <View style={styles.receiptRow}>
+                      <View className="flex-row items-center gap-2 mb-1.5">
                         <Feather name="clock" size={16} color={cfg.color} />
-                        <Text style={[styles.receiptTitle, { color: cfg.color }]}>
+                        <Text className="text-sm font-bold" style={{ color: cfg.color }}>
                           {st === 'overdue'
                             ? `Atrasado ${Math.abs(days!)} dia${Math.abs(days!) > 1 ? 's' : ''}`
                             : st === 'today'
@@ -460,66 +443,66 @@ export function Sales() {
                             : `Vence em ${days} dia${days! > 1 ? 's' : ''}`}
                         </Text>
                       </View>
-                      <Text style={styles.receiptDetail}>Aguardando recebimento</Text>
+                      <Text className="text-[13px] text-primary-dark">Aguardando recebimento</Text>
                       <Button
                         title="Marcar como recebido"
                         variant="secondary"
-                        style={{ marginTop: 10 }}
+                        className="mt-2.5"
                         onPress={handleMarkReceived}
-                        icon={<Feather name="check" size={14} color={colors.dark.main} />}
+                        icon={<Feather name="check" size={14} color="#0E0F0C" />}
                       />
                     </>
                   )}
                 </View>
               </View>
 
-              <View style={[styles.row, { marginTop: 16 }]}>
-                <Button title="Voltar" variant="primary" style={styles.flex} onPress={() => setStep('list')} />
-                <View style={{ width: 8 }} />
-                <Button title="Editar" variant="primary-dark" style={styles.flex} onPress={startEdit} />
+              <View className="flex-row items-center my-1 mt-4">
+                <Button title="Voltar" variant="primary" className="flex-1" onPress={() => setStep('list')} />
+                <View className="w-2" />
+                <Button title="Editar" variant="primary-dark" className="flex-1" onPress={startEdit} />
               </View>
             </View>
           );
         })()}
 
-        {/* ── EDIT ─────────────────────────────────────────────────────── */}
+        {/* EDIT */}
         {step === 'edit' && selectedSale && (
           <View>
             <Select label="Cliente" value={selectedSale.clients?.name} disabled />
 
-            <View style={styles.cartContainer}>
+            <View className="mt-4 p-4 bg-light-dark rounded-lg">
               {editCart.map((item, idx) => (
-                <View key={idx} style={styles.editCartItem}>
-                  <Text style={styles.cartItemText}>
+                <View key={idx} className="flex-row justify-between items-center mb-3">
+                  <Text className="text-sm text-primary-dark font-bold">
                     {idx + 1}. {item.product?.name} ({item.quantity}x) – {renderPrice(item.price * item.quantity)}
                   </Text>
                   <TouchableOpacity onPress={() => setEditCart(editCart.filter((_, i) => i !== idx))}>
-                    <Text style={styles.cartItemRemove}>Remover</Text>
+                    <Text className="text-xs text-primary underline">Remover</Text>
                   </TouchableOpacity>
                 </View>
               ))}
-              <Text style={styles.cartTotalText}>
+              <Text className="text-base text-primary-dark font-bold mt-3">
                 Total: {renderPrice(calcTotal(editCart))}
               </Text>
             </View>
 
-            <View style={[styles.row, { marginTop: 16 }]}>
+            <View className="flex-row items-center my-1 mt-4">
               <Select
                 label="Data venc."
                 value={formatDate(editDueDate)}
                 onPress={() => { setDateFieldTarget('editDueDate'); setShowDatePicker(true); }}
-                style={styles.flex}
+                className="flex-1"
               />
-              <View style={{ width: 8 }} />
+              <View className="w-2" />
               <QuantitySelector label={editPaymentMode} value={0} onChange={switchPayment} />
             </View>
 
             <Input placeholder="Observação..." multiline style={{ minHeight: 64, marginTop: 4 }} />
 
-            <View style={[styles.row, { marginTop: 8 }]}>
-              <Button title="Cancelar" variant="primary-dark" style={styles.flex} onPress={() => setStep('details')} />
-              <View style={{ width: 8 }} />
-              <Button title="Salvar" variant="secondary" style={styles.flex} onPress={handleSaveEdit} />
+            <View className="flex-row items-center my-1 mt-2">
+              <Button title="Cancelar" variant="primary-dark" className="flex-1" onPress={() => setStep('details')} />
+              <View className="w-2" />
+              <Button title="Salvar" variant="secondary" className="flex-1" onPress={handleSaveEdit} />
             </View>
 
             <Button
@@ -527,14 +510,13 @@ export function Sales() {
               variant="danger"
               onPress={handleDelete}
               disabled={loading}
-              style={{ marginTop: 8 }}
+              className="mt-2"
             />
           </View>
         )}
 
       </ScrollView>
 
-      {/* Date picker */}
       {showDatePicker && (
         <DateTimePicker
           value={new Date()}
@@ -556,49 +538,53 @@ export function Sales() {
       {/* Edit receipt modal */}
       <Modal visible={receiptModalVisible} transparent animationType="slide">
         <TouchableOpacity
-          style={styles.bottomSheetOverlay}
+          className="modal-overlay-bottom"
           activeOpacity={1}
           onPress={() => !savingReceipt && setReceiptModalVisible(false)}
         >
-          <TouchableOpacity activeOpacity={1} style={styles.receiptSheet}>
-            <Text style={styles.receiptSheetTitle}>
+          <TouchableOpacity activeOpacity={1} className="modal-sheet-bottom">
+            <Text className="text-lg font-bold text-primary-dark text-center mb-0.5">
               {selectedSale?.received_at ? 'Editar Recebimento' : 'Marcar como Recebido'}
             </Text>
             {selectedSale && (
-              <Text style={styles.receiptSheetSub}>{selectedSale.clients?.name}</Text>
+              <Text className="text-[13px] text-primary text-center mb-4">{selectedSale.clients?.name}</Text>
             )}
 
-            <Text style={styles.receiptSheetLabel}>Data do recebimento</Text>
+            <Text className="label-upper mt-3">
+              Data do recebimento
+            </Text>
             <TouchableOpacity
-              style={styles.receiptDateBtn}
+              className="flex-row items-center gap-2 bg-light rounded-[10px] p-3.5 mb-1"
               onPress={() => { setDateFieldTarget('receiptDate'); setShowDatePicker(true); }}
             >
-              <Feather name="calendar" size={16} color={colors.primary.dark} />
-              <Text style={styles.receiptDateBtnTxt}>{formatDate(receiptDate)}</Text>
+              <Feather name="calendar" size={16} color="#3C096C" />
+              <Text className="text-base font-semibold text-primary-dark">{formatDate(receiptDate)}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.receiptSheetLabel}>Valor recebido (R$)</Text>
+            <Text className="label-upper mt-3">
+              Valor recebido (R$)
+            </Text>
             <TextInput
-              style={styles.receiptAmountInput}
+              className="amount-input text-[26px]"
               value={receiptAmount}
               onChangeText={setReceiptAmount}
               keyboardType="decimal-pad"
               selectTextOnFocus
             />
 
-            <View style={styles.row}>
+            <View className="flex-row items-center">
               <Button
                 title="Cancelar"
                 variant="primary-dark"
-                style={styles.flex}
+                className="flex-1"
                 onPress={() => setReceiptModalVisible(false)}
                 disabled={savingReceipt}
               />
-              <View style={{ width: 8 }} />
+              <View className="w-2" />
               <Button
                 title={savingReceipt ? 'Salvando...' : 'Confirmar'}
                 variant="secondary"
-                style={{ flex: 1.5 }}
+                className="flex-[1.5]"
                 onPress={handleSaveReceipt}
                 disabled={savingReceipt}
               />
@@ -609,9 +595,9 @@ export function Sales() {
 
       {/* Selector modal */}
       <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
+        <View className="modal-overlay-center">
+          <View className="modal-panel-center">
+            <Text className="modal-title">
               Selecione {modalType === 'cliente' ? 'o Cliente' : 'a Mercadoria'}
             </Text>
             <FlatList
@@ -623,13 +609,15 @@ export function Sales() {
               keyExtractor={i => i.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.modalItem}
+                  className="modal-item"
                   onPress={() => selectModalItem(item.id === 'none' ? null : item)}
                 >
-                  <Text style={styles.modalItemText}>{item.name}</Text>
+                  <Text className="text-base text-primary">{item.name}</Text>
                 </TouchableOpacity>
               )}
-              ListEmptyComponent={<Text style={styles.modalEmpty}>Nenhum item.</Text>}
+              ListEmptyComponent={
+                <Text className="empty-text">Nenhum item.</Text>
+              }
             />
             <Button title="Fechar" onPress={() => setModalVisible(false)} variant="primary" />
           </View>
@@ -638,110 +626,3 @@ export function Sales() {
     </KeyboardAvoidingView>
   );
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container:     { flex: 1, backgroundColor: colors.light.main },
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 100 },
-  row:           { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
-  flex:          { flex: 1 },
-
-  // Filter chips
-  filterLabel: {
-    fontSize: 11, fontWeight: 'bold', color: colors.primary.main,
-    textTransform: 'uppercase', marginTop: 12, marginBottom: 6, letterSpacing: 0.5,
-  },
-  chipRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  chip:    { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: colors.light.dark },
-  chipOn:  { backgroundColor: colors.primary.dark },
-  chipTxt:    { fontSize: 12, fontWeight: '600', color: colors.primary.main },
-  chipTxtOn:  { color: '#fff' },
-
-  // Summary row
-  summaryRow: { flexDirection: 'row', gap: 8, marginTop: 16, marginBottom: 4 },
-  summaryCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 10,
-    borderLeftWidth: 3, borderLeftColor: colors.primary.main,
-    elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 2,
-  },
-  summaryLabel: { fontSize: 10, color: colors.primary.main, fontWeight: '600', marginBottom: 2 },
-  summaryValue: { fontSize: 13, fontWeight: 'bold', color: colors.primary.dark },
-
-  // List
-  listContainer: {
-    backgroundColor: colors.light.dark, borderRadius: 10, padding: 16, marginTop: 8,
-  },
-  listHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  listTitle:  { color: colors.primary.dark, fontWeight: 'bold', fontSize: 16 },
-  listItem: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
-    paddingHorizontal: 8, borderRadius: 8, marginBottom: 6,
-    backgroundColor: colors.light.main,
-  },
-  listIdx:   { color: colors.primary.light, width: 22, fontSize: 12 },
-  listName:  { color: colors.primary.dark, fontWeight: 'bold', fontSize: 14 },
-  listSub:   { color: colors.primary.main, fontSize: 11, marginTop: 1 },
-  listPrice: { fontSize: 13, fontWeight: 'bold', color: colors.primary.dark },
-  statusBadge:    { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20 },
-  statusBadgeTxt: { fontSize: 9, fontWeight: 'bold', color: '#fff' },
-  emptyText: { textAlign: 'center', color: colors.primary.main, marginTop: 24 },
-
-  // Details
-  detailsCard: {
-    backgroundColor: colors.light.dark, borderRadius: 10, padding: 24,
-    alignItems: 'center', marginTop: 16,
-  },
-  detailsClient:  { fontSize: 20, fontWeight: 'bold', color: colors.primary.dark, textAlign: 'center' },
-  detailsAddress: { fontSize: 12, color: colors.primary.main, textAlign: 'center', marginBottom: 20 },
-  detailsTotal:   { fontSize: 28, fontWeight: 'bold', color: colors.primary.dark, marginBottom: 16 },
-  detailsItem:    { color: colors.primary.main, fontSize: 14, marginBottom: 4 },
-  detailsDates:   { color: colors.primary.main, fontSize: 12, marginTop: 16 },
-
-  // Receipt block
-  receiptBlock: {
-    width: '100%', marginTop: 20, padding: 14, borderRadius: 10,
-    borderWidth: 1,
-  },
-  receiptRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  receiptTitle: { fontSize: 14, fontWeight: 'bold' },
-  receiptDetail:{ fontSize: 13, color: colors.primary.dark, marginBottom: 2 },
-
-  // Edit
-  cartContainer:  { marginTop: 16, padding: 16, backgroundColor: colors.light.dark, borderRadius: 8 },
-  editCartItem:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  cartItemText:   { fontSize: 14, color: colors.primary.dark, fontWeight: 'bold' },
-  cartItemRemove: { fontSize: 12, color: colors.primary.main, textDecorationLine: 'underline' },
-  cartTotalText:  { fontSize: 16, color: colors.primary.dark, fontWeight: 'bold', marginTop: 12 },
-
-  // Bottom sheet overlay (receipt)
-  bottomSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-
-  // Receipt sheet modal
-  receiptSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, paddingBottom: 40,
-  },
-  receiptSheetTitle: { fontSize: 18, fontWeight: 'bold', color: colors.primary.dark, textAlign: 'center', marginBottom: 2 },
-  receiptSheetSub:   { fontSize: 13, color: colors.primary.main, textAlign: 'center', marginBottom: 16 },
-  receiptSheetLabel: { fontSize: 11, fontWeight: 'bold', color: colors.primary.main, textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
-  receiptDateBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: colors.light.main, borderRadius: 10, padding: 14, marginBottom: 4,
-  },
-  receiptDateBtnTxt: { fontSize: 16, fontWeight: '600', color: colors.primary.dark },
-  receiptAmountInput: {
-    backgroundColor: colors.light.main, borderRadius: 10, padding: 14,
-    fontSize: 26, fontWeight: 'bold', color: colors.primary.dark,
-    textAlign: 'center', marginBottom: 16,
-  },
-
-  // Modal (selector)
-  modalOverlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
-  modalContent:  { backgroundColor: colors.light.main, borderRadius: 8, padding: 24, maxHeight: '80%' },
-  modalTitle:    { fontSize: 20, fontWeight: 'bold', color: colors.primary.dark, marginBottom: 16, textAlign: 'center' },
-  modalItem:     { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.light.dark },
-  modalItemText: { fontSize: 16, color: colors.primary.main },
-  modalEmpty:    { textAlign: 'center', color: colors.primary.main, marginVertical: 16 },
-});

@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+
+  /* ── Layout ─────────────────────────────────────────────────────────────── */
+
+  .screen {
+    @apply flex-1 bg-light;
+  }
+
+  .screen-padded {
+    @apply flex-1 bg-light px-6 pt-5;
+  }
+
+  .page-header {
+    @apply flex-row items-center px-5 pt-[60px] pb-5 bg-light;
+  }
+
+  /* ── Tipografia ─────────────────────────────────────────────────────────── */
+
+  .label-upper {
+    @apply text-[11px] font-bold text-primary uppercase mb-1.5;
+  }
+
+  .section-title {
+    @apply text-lg font-bold text-primary-dark;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-primary-dark;
+  }
+
+  .modal-title {
+    @apply text-xl font-bold text-primary-dark text-center mb-4;
+  }
+
+  .empty-text {
+    @apply text-center text-primary my-4;
+  }
+
+  /* ── Cards ──────────────────────────────────────────────────────────────── */
+
+  .form-card {
+    @apply bg-light rounded-[20px] p-6 border border-light-dark;
+  }
+
+  .details-card {
+    @apply bg-light rounded-[20px] p-6 items-center border border-light-dark;
+  }
+
+  .entity-card {
+    @apply flex-row items-center bg-light p-4 rounded-xl border border-light-dark;
+  }
+
+  /* ── Modais ─────────────────────────────────────────────────────────────── */
+
+  .modal-overlay-bottom {
+    @apply flex-1 bg-black/[0.45] justify-end;
+  }
+
+  .modal-overlay-center {
+    @apply flex-1 bg-black/50 justify-center p-6;
+  }
+
+  .modal-sheet-bottom {
+    @apply bg-white rounded-t-3xl p-6 pb-10;
+  }
+
+  .modal-panel-center {
+    @apply bg-light rounded-lg p-6 max-h-[80%];
+  }
+
+  .modal-item {
+    @apply py-3 border-b border-light-dark;
+  }
+
+  /* ── Detalhes ────────────────────────────────────────────────────────────── */
+
+  .info-row {
+    @apply flex-row items-center w-full py-3 border-t border-light-dark;
+  }
+
+  .detail-block {
+    @apply w-full mt-4 p-4 bg-light-dark rounded-xl;
+  }
+
+  /* ── Ícones / Avatares ────────────────────────────────────────────────────── */
+
+  .icon-avatar-sm {
+    @apply w-11 h-11 rounded-full bg-[#F0F4FF] items-center justify-center mr-3;
+  }
+
+  .icon-avatar-lg {
+    @apply w-20 h-20 rounded-full bg-[#F0F4FF] items-center justify-center mb-4;
+  }
+
+  /* ── Botões de ação (rodapé de telas de detalhe) ────────────────────────── */
+
+  .action-buttons {
+    @apply mt-auto mb-10;
+  }
+
+  /* ── Linhas de formulário com dois campos ───────────────────────────────── */
+
+  .form-row {
+    @apply flex-row items-center;
+  }
+
+  .form-row-gap {
+    @apply flex-row items-center my-1;
+  }
+
+  /* ── Input de valor monetário (modal de recebimento) ────────────────────── */
+
+  .amount-input {
+    @apply bg-light rounded-[10px] p-3.5 text-[28px] font-bold text-primary-dark text-center mb-4;
+  }
+
+  /* ── Chips de filtro ────────────────────────────────────────────────────── */
+
+  .filter-chip {
+    @apply px-3.5 py-1.5 rounded-full bg-light-dark;
+  }
+
+  .filter-chip-active {
+    @apply px-3.5 py-1.5 rounded-full bg-primary-dark;
+  }
+
+  /* ── Botão de desarquivar ────────────────────────────────────────────────── */
+
+  .unarchive-btn {
+    @apply items-center justify-center pl-3 border-l border-light-dark;
+  }
+
+}

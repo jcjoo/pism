@@ -1,74 +1,46 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors } from '@/theme';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../services/supabase';
 
 export default function Menu() {
-    const navigation = useNavigation()
-    const menuItems = [
-        { label: 'Produtos', screen: 'Products' },
-        { label: 'Clientes', screen: 'Clients' },
-        { label: 'Perfil' },
-        { label: 'Conta' },
-        { label: 'Configurações' },
-        { label: 'Sair do App', action: () => supabase.auth.signOut() },
-    ];
+  const navigation = useNavigation();
+  const menuItems = [
+    { label: 'Produtos', screen: 'Products' },
+    { label: 'Clientes', screen: 'Clients' },
+    { label: 'Perfil' },
+    { label: 'Conta' },
+    { label: 'Configurações' },
+    { label: 'Sair do App', action: () => supabase.auth.signOut() },
+  ];
 
-    return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Menu</Text>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Feather name="x" size={32} color="white" />
-                </TouchableOpacity>
-            </View>
+  return (
+    <View className="flex-1 bg-primary-dark p-6">
+      <View className="flex-row justify-between items-center mt-10 mb-[60px]">
+        <Text className="text-[32px] font-bold text-white">Menu</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Feather name="x" size={32} color="white" />
+        </TouchableOpacity>
+      </View>
 
-            <View style={styles.menuItems}>
-                {menuItems.map((item, index) => (
-                    <TouchableOpacity key={index} style={styles.item} onPress={() => {
-                        if (item.screen) {
-                            navigation.navigate('App' as never, { screen: item.screen } as never);
-                        } else if (item.action) {
-                            item.action();
-                        }
-                    }}>
-                        <Text style={styles.itemText}>{item.label}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-        </View>
-    );
+      <View className="gap-6">
+        {menuItems.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            className="py-2"
+            onPress={() => {
+              if (item.screen) {
+                navigation.navigate('App' as never, { screen: item.screen } as never);
+              } else if (item.action) {
+                item.action();
+              }
+            }}
+          >
+            <Text className="text-2xl font-bold text-white">{item.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.primary.dark,
-        padding: 24,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 40,
-        marginBottom: 60,
-    },
-    headerTitle: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: 'white',
-    },
-    menuItems: {
-        gap: 24,
-    },
-    item: {
-        paddingVertical: 8,
-    },
-    itemText: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: 'white',
-    },
-});

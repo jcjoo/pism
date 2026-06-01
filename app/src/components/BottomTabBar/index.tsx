@@ -1,6 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { colors } from "../../theme";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
 interface TabBarProps {
@@ -17,22 +16,24 @@ export function BottomTabBar({ activeTab, onTabPress }: TabBarProps) {
   ] as const;
 
   return (
-    <View style={styles.container}>
+    <View className="flex-row bg-light-dark rounded-lg p-3 justify-around items-center my-1">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
           <TouchableOpacity
             key={tab.id}
-            style={styles.tab}
+            className="items-center flex-1"
             onPress={() => onTabPress(tab.id)}
           >
-            <View style={styles.iconContainer}>
+            <View className="items-center justify-center">
               <Feather
                 name={tab.icon as any}
                 size={20}
-                color={isActive ? colors.primary.dark : colors.primary.main}
+                color={isActive ? "#3C096C" : "#5A189A"}
               />
-              {isActive && <Text style={styles.label}>{tab.label}</Text>}
+              {isActive && (
+                <Text className="text-xs font-bold text-primary-dark mt-1">{tab.label}</Text>
+              )}
             </View>
           </TouchableOpacity>
         );
@@ -40,29 +41,3 @@ export function BottomTabBar({ activeTab, onTabPress }: TabBarProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    backgroundColor: colors.light.dark,
-    borderRadius: 8,
-    padding: 12,
-    justifyContent: "space-around",
-    alignItems: "center",
-    marginVertical: 4,
-  },
-  tab: {
-    alignItems: "center",
-    flex: 1,
-  },
-  iconContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: colors.primary.dark,
-    marginTop: 4,
-  },
-});

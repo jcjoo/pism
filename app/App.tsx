@@ -1,20 +1,13 @@
+import "./global.css";
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
-import { colors } from '@/theme';
+import { View } from 'react-native';
 import { Navigation } from '@/navigation';
 
 export default function App() {
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-light">
       <Navigation />
       <StatusBar style="auto" />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.light.main,
-  }
-});

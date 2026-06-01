@@ -1,6 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, View } from 'react-native';
-import { colors, typography } from '../../theme';
+import { TouchableOpacity, Text, TouchableOpacityProps, View } from 'react-native';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -8,61 +7,27 @@ interface ButtonProps extends TouchableOpacityProps {
   icon?: React.ReactNode;
 }
 
-export function Button({ title, variant = 'primary', icon, style, ...rest }: ButtonProps) {
-  const getBackgroundColor = () => {
-    switch (variant) {
-      case 'primary': return colors.primary.main;
-      case 'primary-dark': return colors.primary.dark;
-      case 'primary-light': return colors.primary.light;
-      case 'secondary': return colors.secondary.main;
-      case 'danger': return colors.danger.main;
-      case 'ghost': return 'transparent';
-      default: return colors.primary.main;
-    }
-  };
+const variantStyles: Record<string, { container: string; text: string }> = {
+  primary:       { container: 'bg-primary',       text: 'text-white' },
+  'primary-dark': { container: 'bg-primary-dark',  text: 'text-white' },
+  'primary-light': { container: 'bg-primary-light', text: 'text-white' },
+  secondary:     { container: 'bg-secondary',     text: 'text-dark' },
+  danger:        { container: 'bg-danger',        text: 'text-white' },
+  ghost:         { container: 'bg-transparent',   text: 'text-primary-dark' },
+};
 
-  const getTextColor = () => {
-    if (variant === 'ghost') return colors.primary.dark;
-    if (variant === 'secondary') return colors.dark.main;
-    return '#FFFFFF';
-  };
+export function Button({ title, variant = 'primary', icon, className, ...rest }: ButtonProps & { className?: string }) {
+  const { container, text } = variantStyles[variant] ?? variantStyles.primary;
 
   return (
     <TouchableOpacity
-      style={[
-        styles.container, 
-        { backgroundColor: getBackgroundColor() },
-        icon ? styles.row : null,
-        style
-      ]}
+      className={`py-3 px-6 rounded-lg items-center justify-center min-h-[48px] my-1 ${container} ${icon ? 'flex-row' : ''} ${className ?? ''}`}
       {...rest}
     >
-      {icon && <View style={styles.iconContainer}>{icon}</View>}
-      <Text style={[styles.title, { color: getTextColor() }]}>
+      {icon && <View className="mr-2.5">{icon}</View>}
+      <Text className={`text-base font-bold ${text}`}>
         {title}
       </Text>
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-    marginVertical: 4,
-  },
-  title: {
-    fontSize: parseInt(typography.sizes.corpo, 10) || 16,
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-  },
-  iconContainer: {
-    marginRight: 10,
-  },
-});

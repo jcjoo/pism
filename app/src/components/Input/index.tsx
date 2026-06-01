@@ -1,47 +1,23 @@
 import React from 'react';
-import { TextInput, TextInputProps, StyleSheet, View, Text } from 'react-native';
-import { colors, typography } from '../../theme';
+import { TextInput, TextInputProps, View, Text } from 'react-native';
 
 interface InputProps extends TextInputProps {
   label?: string;
 }
 
-export function Input({ label, style, ...rest }: InputProps) {
+export function Input({ label, className, ...rest }: InputProps & { className?: string }) {
   return (
-    <View style={[styles.container, style]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+    <View className={`bg-slate-50 rounded-xl px-4 py-3 border border-slate-200 my-2 w-full ${className ?? ''}`}>
+      {label && (
+        <Text className="text-xs font-bold text-primary uppercase tracking-wide mb-1">
+          {label}
+        </Text>
+      )}
       <TextInput
-        style={styles.input}
-        placeholderTextColor={colors.primary.light}
+        className="text-base text-primary-dark font-semibold p-0"
+        placeholderTextColor="#8B5A96"
         {...rest}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginVertical: 8,
-    width: '100%',
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.primary.main,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
-    fontSize: 16,
-    color: colors.primary.dark,
-    fontWeight: '600',
-    padding: 0, // Remove padding extra do Android
-  },
-});

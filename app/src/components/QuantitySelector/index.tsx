@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, typography } from '../../theme';
 
 export interface QuantitySelectorProps {
   value?: number;
@@ -23,40 +22,14 @@ export function QuantitySelector({ value, onChange, label = 'Quantidade', min = 
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={() => handleUpdate(quantity - 1)} style={styles.button}>
-        <Feather name="minus" size={20} color={colors.primary.main} />
+    <View className="flex-row items-center bg-light-dark rounded-lg min-h-[48px] px-3 justify-between my-1">
+      <TouchableOpacity onPress={() => handleUpdate(quantity - 1)} className="p-2">
+        <Feather name="minus" size={20} color="#5A189A" />
       </TouchableOpacity>
-      <Text style={styles.text}>{label}</Text>
-      <TouchableOpacity onPress={() => handleUpdate(quantity + 1)} style={styles.button}>
-        <Feather name="plus" size={20} color={colors.primary.main} />
+      <Text className="text-base text-primary-dark font-bold">{label}</Text>
+      <TouchableOpacity onPress={() => handleUpdate(quantity + 1)} className="p-2">
+        <Feather name="plus" size={20} color="#5A189A" />
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.light.dark,
-    borderRadius: 8,
-    minHeight: 48,
-    paddingHorizontal: 12,
-    justifyContent: 'space-between',
-    marginVertical: 4,
-  },
-  button: {
-    padding: 8,
-  },
-  buttonText: {
-    fontSize: parseInt(typography.sizes.h5, 10) || 20,
-    color: colors.primary.main,
-    fontWeight: 'bold',
-  },
-  text: {
-    fontSize: parseInt(typography.sizes.corpo, 10) || 16,
-    color: colors.primary.dark,
-    fontWeight: 'bold',
-  },
-});

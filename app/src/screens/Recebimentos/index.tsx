@@ -8,7 +8,6 @@ import React, {
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -27,31 +26,43 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from '@/components';
-import { colors } from '@/theme';
-import { recebimentosService, PendingSale } from '@/services/recebimentos.service';
+import { recebimentosService, PendingSale, SaleInstallment } from '@/services/recebimentos.service';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_W * 0.28;
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 type DueStatus = 'overdue' | 'today' | 'week' | 'future';
 
-const saleTotal = (sale: PendingSale) =>
-  sale.sale_items.reduce((acc, i) => acc + i.price * i.quantity, 0);
+const saleTotal        = (sale: PendingSale) => sale.sale_items.reduce((acc, i) => acc + i.price * i.quantity, 0);
+const renderPrice      = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
+const formatDate       = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('pt-BR') : '';
+const isInstallment    = (sale: PendingSale) => sale.payment !== 'cash' && (sale.installments ?? 1) > 1;
+const installmentCount = (sale: PendingSale) => sale.installments ?? 1;
 
-const renderPrice = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
+const pendingInstallments = (sale: PendingSale): SaleInstallment[] =>
+  (sale.sale_installments ?? [])
+    .filter(i => !i.received_at)
+    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
 
-const formatDate = (d: string | Date | null) => {
-  if (!d) return '';
-  return new Date(d).toLocaleDateString('pt-BR');
+const sortedInstallments = (sale: PendingSale): SaleInstallment[] =>
+  [...(sale.sale_installments ?? [])].sort((a, b) => a.installment_number - b.installment_number);
+
+const effectiveDueDate = (sale: PendingSale): string => {
+  if (!isInstallment(sale)) return sale.dueDate;
+  const pending = pendingInstallments(sale);
+  return pending.length > 0 ? pending[0].due_date : sale.dueDate;
+};
+
+const pendingTotal = (sale: PendingSale): number => {
+  if (!isInstallment(sale)) return saleTotal(sale);
+  return pendingInstallments(sale).reduce((a, i) => a + i.amount, 0);
 };
 
 const getDays = (dueDate: string, ref: Date = new Date()) => {
-  const due = new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-  const base = new Date(ref);
-  base.setHours(0, 0, 0, 0);
+  const due  = new Date(dueDate); due.setHours(0, 0, 0, 0);
+  const base = new Date(ref);     base.setHours(0, 0, 0, 0);
   return Math.ceil((due.getTime() - base.getTime()) / 86400000);
 };
 
@@ -64,25 +75,178 @@ const getStatus = (dueDate: string, ref?: Date): DueStatus => {
 };
 
 const STATUS = {
-  overdue: { label: 'Atrasado',    color: colors.danger.main },
+  overdue: { label: 'Atrasado',    color: '#DF1515' },
   today:   { label: 'Vence hoje',  color: '#FF8C00' },
-  week:    { label: 'Esta semana', color: colors.secondary.dark },
-  future:  { label: 'Em dia',      color: colors.primary.main },
+  week:    { label: 'Esta semana', color: '#758C36' },
+  future:  { label: 'Em dia',      color: '#5A189A' },
 };
+
+// ── InstallmentModal ──────────────────────────────────────────────────────────
+
+interface InstallmentModalProps {
+  sale: PendingSale | null;
+  onClose: () => void;
+  onConfirm: (ids: string[]) => Promise<void>;
+  saving: boolean;
+}
+
+function InstallmentModal({ sale, onClose, onConfirm, saving }: InstallmentModalProps) {
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!sale) return;
+    const pending = pendingInstallments(sale);
+    const autoSelect = pending.filter(i => getDays(i.due_date) <= 0);
+    const preSelected = autoSelect.length > 0 ? autoSelect : pending.slice(0, 1);
+    setCheckedIds(new Set(preSelected.map(i => i.id)));
+  }, [sale?.id]);
+
+  if (!sale) return null;
+
+  const all = sortedInstallments(sale);
+  const selectedTotal = all
+    .filter(i => checkedIds.has(i.id))
+    .reduce((a, i) => a + i.amount, 0);
+
+  const toggle = (id: string) =>
+    setCheckedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  return (
+    <Modal visible={!!sale} transparent animationType="slide">
+      <TouchableOpacity
+        className="modal-overlay-bottom"
+        activeOpacity={1}
+        onPress={() => !saving && onClose()}
+      >
+        <TouchableOpacity activeOpacity={1} className="modal-sheet-bottom">
+          {/* Header */}
+          <View className="-mx-6 -mt-6 px-6 pt-5 pb-4 mb-3 bg-light rounded-t-3xl border-t-4 border-t-primary-dark">
+            <Text className="text-lg font-bold text-primary-dark">{sale.clients?.name}</Text>
+            <Text className="text-[12px] text-primary mt-0.5">
+              {installmentCount(sale)}x · Total da venda: {renderPrice(saleTotal(sale))}
+            </Text>
+          </View>
+
+          {/* Installment list */}
+          <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+            {all.map(inst => {
+              const isReceived = !!inst.received_at;
+              const isChecked  = checkedIds.has(inst.id);
+              const days       = getDays(inst.due_date);
+              const st         = getStatus(inst.due_date);
+              const color      = isReceived ? '#1B8A3D' : STATUS[st].color;
+
+              return (
+                <TouchableOpacity
+                  key={inst.id}
+                  disabled={isReceived || saving}
+                  onPress={() => toggle(inst.id)}
+                  className="flex-row items-center py-3 border-b border-light-dark"
+                  style={{ opacity: isReceived ? 0.45 : 1 }}
+                  activeOpacity={0.7}
+                >
+                  {/* Checkbox */}
+                  <View
+                    className="w-[22px] h-[22px] rounded-[5px] border-2 items-center justify-center mr-3"
+                    style={{
+                      borderColor: isReceived ? '#1B8A3D' : isChecked ? '#3C096C' : '#C4B5D0',
+                      backgroundColor: isReceived ? '#E6F7EC' : isChecked ? '#3C096C' : 'transparent',
+                    }}
+                  >
+                    {(isReceived || isChecked) && (
+                      <Feather name="check" size={12} color={isReceived ? '#1B8A3D' : '#fff'} />
+                    )}
+                  </View>
+
+                  {/* Info */}
+                  <View className="flex-1">
+                    <Text className="text-[13px] font-bold text-primary-dark">
+                      Parcela {inst.installment_number}/{installmentCount(sale)}
+                    </Text>
+                    <Text className="text-[11px] text-primary mt-0.5">
+                      {isReceived
+                        ? `Recebida em ${formatDate(inst.received_at)}`
+                        : formatDate(inst.due_date) +
+                          (days < 0 ? ` · ${Math.abs(days)}d atraso` : days === 0 ? ' · Hoje' : '')}
+                    </Text>
+                  </View>
+
+                  {/* Amount + badge */}
+                  <View className="items-end">
+                    <Text className="text-[14px] font-bold text-primary-dark">{renderPrice(inst.amount)}</Text>
+                    {!isReceived && (
+                      <View className="px-1.5 py-0.5 rounded-full mt-0.5" style={{ backgroundColor: color }}>
+                        <Text className="text-[9px] font-bold text-white">
+                          {days < 0 ? 'Atrasada' : days === 0 ? 'Hoje' : `Em ${days}d`}
+                        </Text>
+                      </View>
+                    )}
+                    {isReceived && (
+                      <Feather name="check-circle" size={13} color="#1B8A3D" style={{ marginTop: 2 }} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Summary */}
+          <View className="flex-row justify-between items-center py-2.5 mt-1 border-t border-light-dark">
+            <Text className="text-[13px] text-primary">
+              {checkedIds.size > 0
+                ? `${checkedIds.size} parcela${checkedIds.size > 1 ? 's' : ''} selecionada${checkedIds.size > 1 ? 's' : ''}`
+                : 'Selecione as parcelas a receber'}
+            </Text>
+            {checkedIds.size > 0 && (
+              <Text className="text-base font-bold text-secondary-dark">{renderPrice(selectedTotal)}</Text>
+            )}
+          </View>
+
+          <View className="flex-row mt-2">
+            <Button
+              title="Cancelar"
+              variant="primary-dark"
+              className="flex-1 mr-1.5"
+              onPress={onClose}
+              disabled={saving}
+            />
+            <Button
+              title={saving ? 'Salvando...' : `Confirmar${checkedIds.size > 0 ? ` (${checkedIds.size})` : ''}`}
+              variant="secondary"
+              className="flex-[1.5]"
+              onPress={() => onConfirm([...checkedIds])}
+              disabled={saving || checkedIds.size === 0}
+            />
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
 
 // ── RecebimentoManual ─────────────────────────────────────────────────────────
 
 type ManualFilter = 'all' | 'overdue' | 'today' | 'week';
 
 function RecebimentoManual() {
-  const [sales, setSales]         = useState<PendingSale[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [refreshing, setRefresh]  = useState(false);
-  const [search, setSearch]       = useState('');
-  const [filter, setFilter]       = useState<ManualFilter>('all');
-  const [selected, setSelected]   = useState<PendingSale | null>(null);
-  const [amount, setAmount]       = useState('');
-  const [saving, setSaving]       = useState(false);
+  const [sales, setSales]        = useState<PendingSale[]>([]);
+  const [loading, setLoading]    = useState(true);
+  const [refreshing, setRefresh] = useState(false);
+  const [search, setSearch]      = useState('');
+  const [filter, setFilter]      = useState<ManualFilter>('all');
+
+  // Cash modal
+  const [selected, setSelected]  = useState<PendingSale | null>(null);
+  const [amount, setAmount]      = useState('');
+  const [saving, setSaving]      = useState(false);
+
+  // Installment modal
+  const [installSale, setInstallSale]   = useState<PendingSale | null>(null);
+  const [installSaving, setInstallSaving] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -95,26 +259,32 @@ function RecebimentoManual() {
 
   const filtered = sales
     .filter(s => {
-      const q = search.toLowerCase();
-      const ok = !search || s.clients?.name.toLowerCase().includes(q) ||
+      const q   = search.toLowerCase();
+      const ok  = !search || s.clients?.name.toLowerCase().includes(q) ||
         s.clients?.address?.toLowerCase().includes(q) ||
         s.clients?.municipio?.nome.toLowerCase().includes(q);
-      const st = getStatus(s.dueDate);
+      const due = effectiveDueDate(s);
+      const st  = getStatus(due);
       const fok = filter === 'all' || filter === st ||
         (filter === 'week' && st === 'today');
       return ok && fok;
     })
-    .sort((a, b) => getDays(a.dueDate) - getDays(b.dueDate));
+    .sort((a, b) => getDays(effectiveDueDate(a)) - getDays(effectiveDueDate(b)));
 
-  const totalPending = sales.reduce((a, s) => a + saleTotal(s), 0);
-  const overdueCount = sales.filter(s => getStatus(s.dueDate) === 'overdue').length;
+  const totalPending = sales.reduce((a, s) => a + pendingTotal(s), 0);
+  const overdueCount = sales.filter(s => getStatus(effectiveDueDate(s)) === 'overdue').length;
 
   const openModal = (sale: PendingSale) => {
-    setSelected(sale);
-    setAmount(saleTotal(sale).toFixed(2).replace('.', ','));
+    if (isInstallment(sale)) {
+      setInstallSale(sale);
+    } else {
+      setSelected(sale);
+      setAmount(saleTotal(sale).toFixed(2).replace('.', ','));
+    }
   };
 
-  const confirm = async () => {
+  // Confirm À vista
+  const confirmCash = async () => {
     if (!selected) return;
     const num = parseFloat(amount.replace(',', '.'));
     if (isNaN(num) || num <= 0) { Alert.alert('Valor inválido'); return; }
@@ -128,45 +298,83 @@ function RecebimentoManual() {
     finally { setSaving(false); }
   };
 
+  // Confirm parcelas
+  const confirmInstallments = async (ids: string[]) => {
+    if (!installSale) return;
+    setInstallSaving(true);
+    try {
+      await recebimentosService.markInstallmentsReceived(ids);
+      const receivedAmt = (installSale.sale_installments ?? [])
+        .filter(i => ids.includes(i.id))
+        .reduce((a, i) => a + i.amount, 0);
+
+      setSales(prev =>
+        prev
+          .map(s => {
+            if (s.id !== installSale.id) return s;
+            return {
+              ...s,
+              sale_installments: s.sale_installments.map(i =>
+                ids.includes(i.id) ? { ...i, received_at: new Date().toISOString() } : i
+              ),
+            };
+          })
+          .filter(s => isInstallment(s) ? s.sale_installments.some(i => !i.received_at) : !s.received_at)
+      );
+
+      setInstallSale(null);
+      Alert.alert(
+        'Recebimento confirmado!',
+        `${ids.length} parcela${ids.length > 1 ? 's' : ''} · ${renderPrice(receivedAmt)} registrado.`
+      );
+    } catch (e: any) { Alert.alert('Erro', e.message); }
+    finally { setInstallSaving(false); }
+  };
+
   const Chip = ({ label, val }: { label: string; val: ManualFilter }) => (
     <TouchableOpacity
-      style={[s.chip, filter === val && s.chipOn]}
+      className={filter === val ? 'filter-chip-active' : 'filter-chip'}
       onPress={() => setFilter(val)}
     >
-      <Text style={[s.chipTxt, filter === val && s.chipTxtOn]}>{label}</Text>
+      <Text className={`text-[11px] font-semibold ${filter === val ? 'text-white' : 'text-primary'}`}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={s.summaryBar}>
+    <View className="flex-1">
+      {/* Summary bar */}
+      <View className="flex-row justify-between bg-primary-dark px-5 py-3.5">
         <View>
-          <Text style={s.sumLabel}>{sales.length} em aberto</Text>
-          <Text style={s.sumValue}>{renderPrice(totalPending)}</Text>
+          <Text className="text-[11px] text-white/65 mb-0.5">{sales.length} em aberto</Text>
+          <Text className="text-xl font-bold text-white">{renderPrice(totalPending)}</Text>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={s.sumLabel}>Atrasados</Text>
-          <Text style={[s.sumValue, { color: '#FF8C8C' }]}>{overdueCount}</Text>
+        <View className="items-end">
+          <Text className="text-[11px] text-white/65 mb-0.5">Atrasados</Text>
+          <Text className="text-xl font-bold text-[#FF8C8C]">{overdueCount}</Text>
         </View>
       </View>
 
-      <View style={s.searchBox}>
-        <Feather name="search" size={16} color={colors.primary.main} />
+      {/* Search */}
+      <View className="flex-row items-center bg-light-dark mx-4 mt-2.5 mb-1 px-3.5 rounded-[10px] min-h-[44px] gap-2">
+        <Feather name="search" size={16} color="#5A189A" />
         <TextInput
-          style={s.searchInput}
+          className="flex-1 text-sm text-primary-dark font-medium"
           placeholder="Buscar cliente ou cidade..."
-          placeholderTextColor={colors.primary.light}
+          placeholderTextColor="#8B5A96"
           value={search}
           onChangeText={setSearch}
         />
         {!!search && (
           <TouchableOpacity onPress={() => setSearch('')}>
-            <Feather name="x" size={16} color={colors.primary.main} />
+            <Feather name="x" size={16} color="#5A189A" />
           </TouchableOpacity>
         )}
       </View>
 
-      <View style={s.chipRow}>
+      {/* Filter chips */}
+      <View className="flex-row px-3 mb-2.5 gap-1.5">
         <Chip label="Todos" val="all" />
         <Chip label="Atrasados" val="overdue" />
         <Chip label="Hoje" val="today" />
@@ -174,7 +382,9 @@ function RecebimentoManual() {
       </View>
 
       {loading ? (
-        <View style={s.empty}><Text style={s.emptyTxt}>Carregando...</Text></View>
+        <View className="items-center py-14">
+          <Text className="text-base text-primary font-medium mt-3.5">Carregando...</Text>
+        </View>
       ) : (
         <FlatList
           data={filtered}
@@ -184,47 +394,72 @@ function RecebimentoManual() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefresh(true); load(true); }}
-              colors={[colors.primary.dark]}
+              colors={['#3C096C']}
             />
           }
           ListEmptyComponent={
-            <View style={s.empty}>
-              <Feather name="check-circle" size={52} color={colors.primary.light} />
-              <Text style={s.emptyTxt}>Nenhum recebimento encontrado</Text>
+            <View className="items-center py-14">
+              <Feather name="check-circle" size={52} color="#8B5A96" />
+              <Text className="text-base text-primary font-medium mt-3.5">Nenhum recebimento encontrado</Text>
             </View>
           }
           renderItem={({ item }) => {
-            const st  = getStatus(item.dueDate);
-            const cfg = STATUS[st];
-            const days = getDays(item.dueDate);
+            const due  = effectiveDueDate(item);
+            const st   = getStatus(due);
+            const cfg  = STATUS[st];
+            const days = getDays(due);
+            const pend = pendingInstallments(item);
+            const isInst = isInstallment(item);
             return (
               <TouchableOpacity
-                style={[s.card, { borderLeftColor: cfg.color }]}
+                className="bg-white rounded-[10px] p-3.5 mb-2 elevation-1"
+                style={{ borderLeftWidth: 4, borderLeftColor: cfg.color }}
                 onPress={() => openModal(item)}
                 activeOpacity={0.75}
               >
-                <View style={s.cardRow}>
-                  <Text style={s.cardName} numberOfLines={1}>
+                <View className="flex-row justify-between items-start mb-1">
+                  <Text className="text-[15px] font-bold text-primary-dark flex-1 mr-2" numberOfLines={1}>
                     {item.clients?.name || 'Cliente removido'}
                   </Text>
-                  <Text style={s.cardTotal}>{renderPrice(saleTotal(item))}</Text>
-                </View>
-                <View style={s.cardRow}>
-                  <Text style={s.cardAddr} numberOfLines={1}>
-                    {item.clients?.municipio?.nome
-                      ? `${item.clients.municipio.nome} · `
-                      : ''}
-                    {item.clients?.address}
-                  </Text>
-                  <View style={[s.badge, { backgroundColor: cfg.color }]}>
-                    <Text style={s.badgeTxt}>
-                      {days < 0 ? `${Math.abs(days)}d atraso` : days === 0 ? 'Hoje' : `${days}d`}
+                  <View className="items-end">
+                    <Text className="text-[15px] font-bold text-secondary-dark">
+                      {renderPrice(pendingTotal(item))}
                     </Text>
+                    {isInst && (
+                      <Text className="text-[10px] text-primary-light">
+                        {pend.length}/{installmentCount(item)} parcelas
+                      </Text>
+                    )}
                   </View>
                 </View>
-                <View style={s.cardRow}>
-                  <Text style={s.cardDue}>Vence: {formatDate(item.dueDate)}</Text>
-                  <Text style={s.cardItems}>
+
+                <View className="flex-row justify-between items-center mb-1">
+                  <Text className="text-xs text-primary flex-1 mr-2" numberOfLines={1}>
+                    {item.clients?.municipio?.nome ? `${item.clients.municipio.nome} · ` : ''}
+                    {item.clients?.address}
+                  </Text>
+                  <View className="flex-row items-center gap-1.5">
+                    {isInst && (
+                      <View className="flex-row items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary-dark/15">
+                        <Feather name="credit-card" size={9} color="#3C096C" />
+                        <Text className="text-[9px] font-bold text-primary-dark">
+                          {installmentCount(item)}x
+                        </Text>
+                      </View>
+                    )}
+                    <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: cfg.color }}>
+                      <Text className="text-[10px] font-bold text-white">
+                        {days < 0 ? `${Math.abs(days)}d atraso` : days === 0 ? 'Hoje' : `${days}d`}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-[11px] text-primary">
+                    {isInst ? `Próx. venc.: ${formatDate(due)}` : `Vence: ${formatDate(item.dueDate)}`}
+                  </Text>
+                  <Text className="text-[11px] text-primary-light">
                     {item.sale_items.length} {item.sale_items.length === 1 ? 'item' : 'itens'}
                   </Text>
                 </View>
@@ -234,52 +469,55 @@ function RecebimentoManual() {
         />
       )}
 
+      {/* À vista modal */}
       <Modal visible={!!selected} transparent animationType="slide">
-        <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={() => setSelected(null)}>
-          <TouchableOpacity activeOpacity={1} style={s.sheet}>
+        <TouchableOpacity
+          className="modal-overlay-bottom"
+          activeOpacity={1}
+          onPress={() => setSelected(null)}
+        >
+          <TouchableOpacity activeOpacity={1} className="modal-sheet-bottom">
             {selected && (() => {
               const cfg = STATUS[getStatus(selected.dueDate)];
               return (
                 <>
-                  <View style={[s.sheetHead, { borderTopColor: cfg.color }]}>
-                    <Text style={s.sheetTitle}>{selected.clients?.name}</Text>
-                    <Text style={s.sheetSub}>{selected.clients?.address}</Text>
+                  <View
+                    className="-mx-6 -mt-6 px-6 pt-6 pb-4 mb-4 bg-light rounded-t-3xl"
+                    style={{ borderTopWidth: 4, borderTopColor: cfg.color }}
+                  >
+                    <Text className="text-xl font-bold text-primary-dark">{selected.clients?.name}</Text>
+                    <Text className="text-[13px] text-primary mt-0.5">{selected.clients?.address}</Text>
                     {selected.clients?.municipio && (
-                      <Text style={s.sheetSub}>
+                      <Text className="text-[13px] text-primary mt-0.5">
                         {selected.clients.municipio.nome} – {selected.clients.municipio.uf}
                       </Text>
                     )}
-                    <View style={[s.badge, { backgroundColor: cfg.color, alignSelf: 'flex-start', marginTop: 8 }]}>
-                      <Text style={s.badgeTxt}>{cfg.label}</Text>
-                    </View>
                   </View>
 
-                  <View style={s.itemList}>
+                  <View className="mb-1">
                     {selected.sale_items.map((item, i) => (
-                      <View key={i} style={s.itemRow}>
-                        <Text style={s.itemTxt}>{item.quantity}x {item.products?.name}</Text>
-                        <Text style={s.itemPrice}>{renderPrice(item.price * item.quantity)}</Text>
+                      <View key={i} className="flex-row justify-between py-1.5 border-b border-light-dark">
+                        <Text className="text-sm text-primary-dark">{item.quantity}x {item.products?.name}</Text>
+                        <Text className="text-sm text-primary font-semibold">{renderPrice(item.price * item.quantity)}</Text>
                       </View>
                     ))}
-                    <View style={[s.itemRow, { borderBottomWidth: 0, marginTop: 6 }]}>
-                      <Text style={[s.itemTxt, { fontWeight: 'bold', fontSize: 15 }]}>Total</Text>
-                      <Text style={[s.itemPrice, { color: colors.secondary.dark, fontSize: 15 }]}>
-                        {renderPrice(saleTotal(selected))}
-                      </Text>
+                    <View className="flex-row justify-between py-1.5 mt-1.5">
+                      <Text className="text-[15px] font-bold text-primary-dark">Total</Text>
+                      <Text className="text-[15px] font-semibold text-secondary-dark">{renderPrice(saleTotal(selected))}</Text>
                     </View>
                   </View>
 
-                  <Text style={s.sheetLabel}>Valor Recebido (R$)</Text>
+                  <Text className="label-upper mt-4">Valor Recebido (R$)</Text>
                   <TextInput
-                    style={s.amountInput}
+                    className="amount-input"
                     value={amount}
                     onChangeText={setAmount}
                     keyboardType="decimal-pad"
                     selectTextOnFocus
                   />
-                  <View style={{ flexDirection: 'row' }}>
-                    <Button title="Cancelar" variant="primary-dark" style={{ flex: 1, marginRight: 6 }} onPress={() => setSelected(null)} />
-                    <Button title={saving ? 'Salvando...' : 'Confirmar'} variant="secondary" style={{ flex: 1.5 }} onPress={confirm} disabled={saving} />
+                  <View className="flex-row">
+                    <Button title="Cancelar" variant="primary-dark" className="flex-1 mr-1.5" onPress={() => setSelected(null)} />
+                    <Button title={saving ? 'Salvando...' : 'Confirmar'} variant="secondary" className="flex-[1.5]" onPress={confirmCash} disabled={saving} />
                   </View>
                 </>
               );
@@ -287,11 +525,19 @@ function RecebimentoManual() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* Installment modal */}
+      <InstallmentModal
+        sale={installSale}
+        onClose={() => setInstallSale(null)}
+        onConfirm={confirmInstallments}
+        saving={installSaving}
+      />
     </View>
   );
 }
 
-// ── RouteStop type ────────────────────────────────────────────────────────────
+// ── RouteStop ─────────────────────────────────────────────────────────────────
 
 interface RouteStop {
   sale: PendingSale;
@@ -310,11 +556,12 @@ function buildRoute(
   const maxStops = Math.max(1, Math.floor((workHours * 60) / avgMins));
 
   const scored: RouteStop[] = sales.map(sale => {
-    const days   = getDays(sale.dueDate, targetDate);
-    const status = getStatus(sale.dueDate, targetDate);
+    const due    = effectiveDueDate(sale);
+    const days   = getDays(due, targetDate);
+    const status = getStatus(due, targetDate);
     const city   = sale.clients?.municipio?.nome ||
       sale.clients?.address?.split(',')[0]?.trim() || 'Sem cidade';
-    return { sale, status, days, total: saleTotal(sale), city };
+    return { sale, status, days, total: pendingTotal(sale), city };
   });
 
   const priorityOf = (s: RouteStop) => {
@@ -324,7 +571,7 @@ function buildRoute(
     return 100 + s.days;
   };
 
-  const pool = [...scored].sort((a, b) => priorityOf(a) - priorityOf(b));
+  const pool  = [...scored].sort((a, b) => priorityOf(a) - priorityOf(b));
   const route: RouteStop[] = [];
 
   while (pool.length > 0 && route.length < maxStops) {
@@ -355,32 +602,27 @@ interface SwipeCardProps {
 
 const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
   ({ stop, onRequestReceive, onSwipeLeft }, ref) => {
-    const pan      = useRef(new Animated.ValueXY()).current;
-    const swiping  = useRef(false);
-    const reqRef   = useRef(onRequestReceive);
-    const skipRef  = useRef(onSwipeLeft);
+    const pan     = useRef(new Animated.ValueXY()).current;
+    const swiping = useRef(false);
+    const reqRef  = useRef(onRequestReceive);
+    const skipRef = useRef(onSwipeLeft);
     reqRef.current  = onRequestReceive;
     skipRef.current = onSwipeLeft;
 
-    function resetPos() {
+    const resetPos = () => {
       Animated.spring(pan, {
-        toValue: { x: 0, y: 0 },
-        useNativeDriver: false,
-        friction: 6,
-        tension: 80,
+        toValue: { x: 0, y: 0 }, useNativeDriver: false, friction: 6, tension: 80,
       }).start();
-    }
+    };
 
-    function doAnimateOut(dir: 'left' | 'right'): Promise<void> {
-      return new Promise(resolve => {
+    const doAnimateOut = (dir: 'left' | 'right'): Promise<void> =>
+      new Promise(resolve => {
         swiping.current = true;
         Animated.timing(pan, {
           toValue: { x: dir === 'right' ? SCREEN_W * 1.5 : -SCREEN_W * 1.5, y: 0 },
-          duration: 280,
-          useNativeDriver: false,
+          duration: 280, useNativeDriver: false,
         }).start(() => resolve());
       });
-    }
 
     useImperativeHandle(ref, () => ({ animateOut: doAnimateOut }));
 
@@ -396,7 +638,6 @@ const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
         onPanResponderRelease: (_, g) => {
           if (swiping.current) return;
           if (g.dx > SWIPE_THRESHOLD) {
-            // Snap back then show confirm modal
             resetPos();
             setTimeout(() => reqRef.current(), 160);
           } else if (g.dx < -SWIPE_THRESHOLD) {
@@ -410,68 +651,89 @@ const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
     ).current;
 
     const rotate = pan.x.interpolate({
-      inputRange: [-SCREEN_W, 0, SCREEN_W],
-      outputRange: ['-12deg', '0deg', '12deg'],
-      extrapolate: 'clamp',
+      inputRange: [-SCREEN_W, 0, SCREEN_W], outputRange: ['-12deg', '0deg', '12deg'], extrapolate: 'clamp',
     });
-    const receivedOpacity = pan.x.interpolate({
-      inputRange: [20, 100], outputRange: [0, 1], extrapolate: 'clamp',
-    });
-    const skipOpacity = pan.x.interpolate({
-      inputRange: [-100, -20], outputRange: [1, 0], extrapolate: 'clamp',
-    });
+    const receivedOpacity = pan.x.interpolate({ inputRange: [20, 100],  outputRange: [0, 1], extrapolate: 'clamp' });
+    const skipOpacity     = pan.x.interpolate({ inputRange: [-100, -20], outputRange: [1, 0], extrapolate: 'clamp' });
 
     const cfg  = STATUS[stop.status];
     const days = stop.days;
+    const isInst = isInstallment(stop.sale);
+    const pend   = pendingInstallments(stop.sale);
 
     return (
       <Animated.View
-        style={[sw.card, { transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate }] }]}
+        style={[
+          {
+            backgroundColor: '#E1DAE8', borderRadius: 20, padding: 24,
+            elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15, shadowRadius: 8,
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10,
+          },
+          { transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate }] },
+        ]}
         {...panResponder.panHandlers}
       >
         {/* RECEBIDO stamp */}
-        <Animated.View style={[sw.stamp, sw.stampRight, { opacity: receivedOpacity }]}>
-          <Text style={[sw.stampTxt, { color: '#00C851' }]}>RECEBIDO</Text>
+        <Animated.View style={[
+          { position: 'absolute', borderWidth: 3, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6, top: 28, zIndex: 20 },
+          { left: 20, borderColor: '#00C851', transform: [{ rotate: '-15deg' }] },
+          { opacity: receivedOpacity },
+        ]}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: 2, color: '#00C851' }}>RECEBIDO</Text>
         </Animated.View>
 
         {/* PULAR stamp */}
-        <Animated.View style={[sw.stamp, sw.stampLeft, { opacity: skipOpacity }]}>
-          <Text style={[sw.stampTxt, { color: colors.danger.main }]}>PULAR</Text>
+        <Animated.View style={[
+          { position: 'absolute', borderWidth: 3, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6, top: 28, zIndex: 20 },
+          { right: 20, borderColor: '#DF1515', transform: [{ rotate: '15deg' }] },
+          { opacity: skipOpacity },
+        ]}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: 2, color: '#DF1515' }}>PULAR</Text>
         </Animated.View>
 
         {/* Content */}
-        <View style={sw.cardInner}>
-          <Text style={sw.clientName}>{stop.sale.clients?.name}</Text>
-
-          <Text style={sw.address}>
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-[22px] font-bold text-primary-dark text-center mb-1">{stop.sale.clients?.name}</Text>
+          <Text className="text-[13px] text-primary text-center mb-4 px-2">
             {stop.sale.clients?.address}
             {stop.city ? `, ${stop.city}` : ''}
             {stop.sale.clients?.municipio?.uf ? ` - ${stop.sale.clients.municipio.uf}` : ''}
           </Text>
 
-          <Text style={[sw.amount, { color: colors.secondary.dark }]}>
+          <Text className="text-[32px] font-bold text-center mb-1 text-secondary-dark">
             {renderPrice(stop.total)}
           </Text>
 
-          <View style={sw.divider} />
+          {isInst && (
+            <View className="flex-row items-center gap-1.5 mb-1">
+              <Feather name="credit-card" size={12} color="#5A189A" />
+              <Text className="text-[12px] text-primary font-semibold">
+                {pend.length} de {installmentCount(stop.sale)} parcelas pendentes
+              </Text>
+            </View>
+          )}
+
+          <View className="w-4/5 border-t border-primary-light/40 my-3" />
 
           {stop.sale.sale_items.map((item, i) => (
-            <Text key={i} style={sw.item}>
+            <Text key={i} className="text-[13px] text-primary-dark text-center mb-1">
               ({item.quantity}x) {item.products?.name} – {renderPrice(item.price * item.quantity)}
             </Text>
           ))}
 
-          <View style={sw.divider} />
+          <View className="w-4/5 border-t border-primary-light/40 my-3" />
 
-          <Text style={sw.dateText}>Data compra: {formatDate(stop.sale.created_at)}</Text>
-          <Text style={sw.dateText}>Data vencimento: {formatDate(stop.sale.dueDate)}</Text>
+          <Text className="text-xs text-primary text-center mb-0.5">Data compra: {formatDate(stop.sale.created_at)}</Text>
+          <Text className="text-xs text-primary text-center mb-4">
+            {isInst ? `Próx. parcela: ${formatDate(effectiveDueDate(stop.sale))}` : `Vencimento: ${formatDate(stop.sale.dueDate)}`}
+          </Text>
 
-          <View style={[sw.statusPill, { backgroundColor: cfg.color }]}>
-            <Text style={sw.statusPillTxt}>
+          <View className="mt-2 px-3.5 py-1.5 rounded-full" style={{ backgroundColor: cfg.color }}>
+            <Text className="text-xs font-bold text-white tracking-wide">
               {days < 0
                 ? `${Math.abs(days)} dia${Math.abs(days) > 1 ? 's' : ''} em atraso`
-                : days === 0
-                ? 'Vence hoje'
+                : days === 0 ? 'Vence hoje'
                 : `Vence em ${days} dia${days > 1 ? 's' : ''}`}
             </Text>
           </View>
@@ -486,41 +748,31 @@ const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
 type GeoCoord = { lat: number; lng: number };
 
 async function geocodeAddress(address: string, city: string, uf: string): Promise<GeoCoord | null> {
-  const query = encodeURIComponent(
-    [address, city, uf, 'Brasil'].filter(Boolean).join(', ')
-  );
+  const query = encodeURIComponent([address, city, uf, 'Brasil'].filter(Boolean).join(', '));
   try {
-    const res = await fetch(
+    const res  = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=br`,
       { headers: { 'User-Agent': 'PISM-App/1.0' } }
     );
     const data = await res.json();
-    if (data?.length > 0) {
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-    }
-  } catch {
-    // silently ignore geocoding errors for individual addresses
-  }
+    if (data?.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch {}
   return null;
 }
 
 // ── MapErrorBoundary ──────────────────────────────────────────────────────────
 
-interface MapErrorBoundaryState { crashed: boolean; message: string }
-
 class MapErrorBoundary extends React.Component<
   { children: React.ReactNode; onError: (msg: string) => void },
-  MapErrorBoundaryState
+  { crashed: boolean; message: string }
 > {
-  state: MapErrorBoundaryState = { crashed: false, message: '' };
+  state = { crashed: false, message: '' };
 
-  static getDerivedStateFromError(error: Error): MapErrorBoundaryState {
+  static getDerivedStateFromError(error: Error) {
     return { crashed: true, message: error.message };
   }
 
-  componentDidCatch(error: Error) {
-    this.props.onError(error.message);
-  }
+  componentDidCatch(error: Error) { this.props.onError(error.message); }
 
   render() {
     if (this.state.crashed) return null;
@@ -532,43 +784,43 @@ class MapErrorBoundary extends React.Component<
 
 function MapErrorScreen({ message }: { message: string }) {
   const isKeyMissing =
-    message.toLowerCase().includes('api') ||
-    message.toLowerCase().includes('key') ||
-    message.toLowerCase().includes('authentication') ||
-    message.toLowerCase().includes('authorization') ||
+    message.toLowerCase().includes('api') || message.toLowerCase().includes('key') ||
+    message.toLowerCase().includes('authentication') || message.toLowerCase().includes('authorization') ||
     message === 'map_load_error';
 
   return (
-    <View style={m.errorContainer}>
-      <View style={m.errorCard}>
-        <View style={m.errorIconWrap}>
-          <Feather name="map" size={40} color={colors.primary.light} />
-          <View style={m.errorBadge}>
-            <Feather name="alert-triangle" size={14} color="#fff" />
+    <View className="flex-1 items-center justify-center bg-light p-6">
+      <View className="bg-white rounded-2xl p-6 items-center w-full elevation-2">
+        <View className="relative mb-4">
+          <Feather name="map" size={40} color="#8B5A96" />
+          <View className="absolute -bottom-0.5 -right-1 bg-danger w-5 h-5 rounded-full items-center justify-center border-2 border-white">
+            <Feather name="alert-triangle" size={10} color="#fff" />
           </View>
         </View>
 
-        <Text style={m.errorTitle}>
+        <Text className="text-base font-bold text-primary-dark text-center mb-2.5">
           {isKeyMissing ? 'Chave do Google Maps não configurada' : 'Erro ao carregar o mapa'}
         </Text>
 
         {isKeyMissing ? (
           <>
-            <Text style={m.errorBody}>
+            <Text className="text-[13px] text-primary text-center leading-5 mb-4">
               Para exibir o mapa é necessário configurar uma chave de API do Google Maps.
             </Text>
-            <View style={m.errorSteps}>
-              <Text style={m.errorStep}>1. Obtenha uma chave em console.cloud.google.com</Text>
-              <Text style={m.errorStep}>2. Adicione em android/local.properties:</Text>
-              <View style={m.errorCode}>
-                <Text style={m.errorCodeTxt}>GOOGLE_MAPS_API_KEY=SUA_CHAVE</Text>
+            <View className="w-full gap-1.5">
+              <Text className="text-xs text-primary-dark leading-[18px]">1. Obtenha uma chave em console.cloud.google.com</Text>
+              <Text className="text-xs text-primary-dark leading-[18px]">2. Adicione em android/local.properties:</Text>
+              <View className="bg-primary-dark rounded-md px-3 py-2 my-1">
+                <Text style={{ fontSize: 11, color: '#C4D680', fontFamily: Platform.OS === 'android' ? 'monospace' : 'Courier' }}>
+                  GOOGLE_MAPS_API_KEY=SUA_CHAVE
+                </Text>
               </View>
-              <Text style={m.errorStep}>3. Faça rebuild: npx expo run:android</Text>
-              <Text style={m.errorStep}>4. Consulte o arquivo GoogleMaps.md do projeto</Text>
+              <Text className="text-xs text-primary-dark leading-[18px]">3. Faça rebuild: npx expo run:android</Text>
+              <Text className="text-xs text-primary-dark leading-[18px]">4. Consulte o arquivo GoogleMaps.md do projeto</Text>
             </View>
           </>
         ) : (
-          <Text style={m.errorBody}>
+          <Text className="text-[13px] text-primary text-center leading-5">
             {message || 'Ocorreu um erro inesperado ao inicializar o mapa.'}
           </Text>
         )}
@@ -590,12 +842,10 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
   const [geocoding,    setGeocoding]    = useState(false);
   const [geocodingIdx, setGeocodingIdx] = useState(0);
   const [mapError,     setMapError]     = useState('');
-  const mapRef      = useRef<MapView>(null);
-  const didGeocode  = useRef(false);
+  const mapRef     = useRef<MapView>(null);
+  const didGeocode = useRef(false);
 
-  const handleError = useCallback((msg: string) => {
-    setMapError(msg || 'map_load_error');
-  }, []);
+  const handleError = useCallback((msg: string) => { setMapError(msg || 'map_load_error'); }, []);
 
   useEffect(() => {
     if (didGeocode.current) return;
@@ -610,65 +860,53 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
     const newCoords: Record<string, GeoCoord> = {};
     for (let i = 0; i < missing.length; i++) {
       setGeocodingIdx(i + 1);
-      const stop = missing[i];
+      const stop  = missing[i];
       const coord = await geocodeAddress(
-        stop.sale.clients?.address || '',
-        stop.city,
-        stop.sale.clients?.municipio?.uf || ''
+        stop.sale.clients?.address || '', stop.city, stop.sale.clients?.municipio?.uf || ''
       );
-      if (coord) {
-        newCoords[stop.sale.id] = coord;
-        onCoordsUpdate(stop.sale.id, coord);
-      }
-      if (i < missing.length - 1) {
-        await new Promise(r => setTimeout(r, 1200));
-      }
+      if (coord) { newCoords[stop.sale.id] = coord; onCoordsUpdate(stop.sale.id, coord); }
+      if (i < missing.length - 1) await new Promise(r => setTimeout(r, 1200));
     }
     setGeocoding(false);
     fitMap(newCoords);
   };
 
   const fitMap = (extra: Record<string, GeoCoord> = {}) => {
-    const all = { ...geocodedCoords, ...extra };
-    const coords = stops
-      .map(s => all[s.sale.id])
-      .filter((c): c is GeoCoord => !!c)
+    const all    = { ...geocodedCoords, ...extra };
+    const coords = stops.map(s => all[s.sale.id]).filter((c): c is GeoCoord => !!c)
       .map(c => ({ latitude: c.lat, longitude: c.lng }));
     if (coords.length > 0 && mapRef.current) {
       mapRef.current.fitToCoordinates(coords, {
-        edgePadding: { top: 80, right: 60, bottom: 80, left: 60 },
-        animated: true,
+        edgePadding: { top: 80, right: 60, bottom: 80, left: 60 }, animated: true,
       });
     }
   };
 
-  const polyline = stops
-    .map(s => geocodedCoords[s.sale.id])
-    .filter((c): c is GeoCoord => !!c)
+  const polyline = stops.map(s => geocodedCoords[s.sale.id]).filter((c): c is GeoCoord => !!c)
     .map(c => ({ latitude: c.lat, longitude: c.lng }));
 
   const geocodedCount = stops.filter(s => geocodedCoords[s.sale.id]).length;
-  const total = stops.length;
+  const total         = stops.length;
+  const hasKey        = !!process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  const hasKey = !!process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  if (!hasKey || mapError) {
-    return <MapErrorScreen message={mapError || 'map_load_error'} />;
-  }
+  if (!hasKey || mapError) return <MapErrorScreen message={mapError || 'map_load_error'} />;
 
   return (
-    <View style={{ flex: 1 }}>
+    <View className="flex-1">
       {geocoding && (
-        <View style={m.geocodingBar}>
+        <View className="flex-row items-center gap-2 bg-primary-dark px-4 py-2.5 z-10">
           <ActivityIndicator size="small" color="#fff" />
-          <Text style={m.geocodingTxt}>
+          <Text className="text-xs text-white font-semibold">
             Localizando endereços... {geocodingIdx}/{total - geocodedCount + geocodingIdx}
           </Text>
         </View>
       )}
 
-      <View style={m.infoBar}>
-        <Text style={m.infoTxt}>
+      <View
+        className="absolute bottom-0 left-0 right-0 z-[5] px-3 py-1.5"
+        style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
+      >
+        <Text className="text-[11px] text-white text-center">
           {geocodedCount}/{total} endereços encontrados · rota em linha reta
         </Text>
       </View>
@@ -684,16 +922,10 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
           toolbarEnabled={false}
         >
           {polyline.length > 1 && (
-            <Polyline
-              coordinates={polyline}
-              strokeColor={colors.primary.dark}
-              strokeWidth={2}
-              lineDashPattern={[10, 6]}
-            />
+            <Polyline coordinates={polyline} strokeColor="#3C096C" strokeWidth={2} lineDashPattern={[10, 6]} />
           )}
-
           {stops.map((stop, idx) => {
-            const coord = geocodedCoords[stop.sale.id];
+            const coord  = geocodedCoords[stop.sale.id];
             if (!coord) return null;
             const cfg    = STATUS[stop.status];
             const isCurr = stop.sale.id === currentStopId;
@@ -709,10 +941,19 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
                 }
                 anchor={{ x: 0.5, y: 1 }}
               >
-                <View style={[m.pin, { backgroundColor: isCurr ? '#FFD700' : cfg.color }, isCurr && m.pinCurrent]}>
-                  <Text style={[m.pinTxt, isCurr && { color: colors.primary.dark }]}>{idx + 1}</Text>
+                <View style={[
+                  { width: isCurr ? 40 : 32, height: isCurr ? 40 : 32, borderRadius: isCurr ? 20 : 16,
+                    alignItems: 'center', justifyContent: 'center', borderWidth: isCurr ? 3 : 2, borderColor: '#fff',
+                    elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3,
+                    backgroundColor: isCurr ? '#FFD700' : cfg.color },
+                ]}>
+                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: isCurr ? '#3C096C' : '#fff' }}>{idx + 1}</Text>
                 </View>
-                <View style={[m.pinTail, { borderTopColor: isCurr ? '#FFD700' : cfg.color }]} />
+                <View style={[
+                  { width: 0, height: 0, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8,
+                    borderLeftColor: 'transparent', borderRightColor: 'transparent',
+                    alignSelf: 'center', borderTopColor: isCurr ? '#FFD700' : cfg.color },
+                ]} />
               </Marker>
             );
           })}
@@ -725,51 +966,44 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
 // ── CompletionView ────────────────────────────────────────────────────────────
 
 function CompletionView({
-  received,
-  totalCollected,
-  skipped,
-  onBack,
+  received, totalCollected, skipped, onBack,
 }: {
-  received: number;
-  totalCollected: number;
-  skipped: RouteStop[];
-  onBack: () => void;
+  received: number; totalCollected: number; skipped: RouteStop[]; onBack: () => void;
 }) {
   return (
-    <View style={sw.completion}>
-      <View style={sw.completionCard}>
-        <Feather name="check-circle" size={64} color={colors.secondary.dark} />
-        <Text style={sw.completionTitle}>Rota concluída!</Text>
+    <View className="flex-1 p-6 justify-center pb-[120px]">
+      <View className="bg-white rounded-[20px] p-8 items-center mb-4 elevation-2">
+        <Feather name="check-circle" size={64} color="#758C36" />
+        <Text className="text-2xl font-bold text-primary-dark mt-4 mb-6">Rota concluída!</Text>
 
-        <View style={sw.completionStats}>
-          <View style={sw.statItem}>
-            <Text style={sw.statVal}>{received}</Text>
-            <Text style={sw.statLbl}>recebimentos</Text>
+        <View className="flex-row w-full mb-5">
+          <View className="flex-1 items-center gap-1">
+            <Text className="text-lg font-bold text-primary-dark text-center">{received}</Text>
+            <Text className="text-[11px] text-primary">recebimentos</Text>
           </View>
-          <View style={sw.statDiv} />
-          <View style={sw.statItem}>
-            <Text style={sw.statVal}>{renderPrice(totalCollected)}</Text>
-            <Text style={sw.statLbl}>total recebido</Text>
+          <View className="w-px bg-light-dark my-1" />
+          <View className="flex-1 items-center gap-1">
+            <Text className="text-lg font-bold text-primary-dark text-center">{renderPrice(totalCollected)}</Text>
+            <Text className="text-[11px] text-primary">total recebido</Text>
           </View>
         </View>
 
         {skipped.length > 0 && (
-          <View style={sw.skippedBox}>
-            <Text style={sw.skippedTitle}>
+          <View className="w-full bg-light rounded-[10px] p-4">
+            <Text className="text-[13px] font-bold text-primary-dark mb-2">
               {skipped.length} parada{skipped.length > 1 ? 's' : ''} não visitada{skipped.length > 1 ? 's' : ''}
             </Text>
             {skipped.map((stop, i) => (
-              <Text key={i} style={sw.skippedItem}>
+              <Text key={i} className="text-xs text-primary mb-1">
                 · {stop.sale.clients?.name} ({renderPrice(stop.total)})
               </Text>
             ))}
-            <Text style={sw.skippedHint}>
+            <Text className="text-[11px] text-primary-light mt-2 italic">
               Inclua no próximo dia ou use Recebimento Manual.
             </Text>
           </View>
         )}
       </View>
-
       <Button title="Voltar à configuração" variant="primary-dark" onPress={onBack} />
     </View>
   );
@@ -777,21 +1011,22 @@ function CompletionView({
 
 // ── RouteSwipeView ────────────────────────────────────────────────────────────
 
-function RouteSwipeView({
-  initialRoute,
-  onBack,
-}: {
-  initialRoute: RouteStop[];
-  onBack: () => void;
-}) {
-  const [remaining, setRemaining] = useState(initialRoute);
-  const [skipped,   setSkipped]   = useState<RouteStop[]>([]);
-  const [received,  setReceived]  = useState(0);
-  const [collected, setCollected] = useState(0);
+function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; onBack: () => void }) {
+  const [remaining, setRemaining]  = useState(initialRoute);
+  const [skipped,   setSkipped]    = useState<RouteStop[]>([]);
+  const [received,  setReceived]   = useState(0);
+  const [collected, setCollected]  = useState(0);
+
+  // Cash confirm modal
   const [showConfirm, setShowConfirm] = useState(false);
-  const [amountStr, setAmountStr] = useState('');
-  const [saving,    setSaving]    = useState(false);
-  const [showMap,   setShowMap]   = useState(false);
+  const [amountStr, setAmountStr]     = useState('');
+  const [saving,    setSaving]        = useState(false);
+
+  // Installment modal
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [installSaving,    setInstallSaving]    = useState(false);
+
+  const [showMap,        setShowMap]        = useState(false);
   const [geocodedCoords, setGeocodedCoords] = useState<Record<string, GeoCoord>>({});
   const cardRef = useRef<SwipeCardHandle>(null);
 
@@ -806,10 +1041,15 @@ function RouteSwipeView({
 
   const handleRequestReceive = () => {
     if (!current) return;
-    setAmountStr(current.total.toFixed(2).replace('.', ','));
-    setShowConfirm(true);
+    if (isInstallment(current.sale)) {
+      setShowInstallModal(true);
+    } else {
+      setAmountStr(current.total.toFixed(2).replace('.', ','));
+      setShowConfirm(true);
+    }
   };
 
+  // Confirm À vista on route
   const handleConfirmReceive = async () => {
     if (!current) return;
     const num = parseFloat(amountStr.replace(',', '.'));
@@ -824,64 +1064,69 @@ function RouteSwipeView({
       setCollected(c => c + num);
     } catch (e: any) {
       Alert.alert('Erro', e.message);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
-  const handleSkip = () => {
-    setSkipped(p => [...p, remaining[0]]);
-    setRemaining(p => p.slice(1));
-  };
-
-  const handlePularPress = () => {
-    cardRef.current?.animateOut('left').then(handleSkip);
-  };
-
-  const openMaps = () => {
+  // Confirm parcelas on route
+  const handleConfirmInstallments = async (ids: string[]) => {
     if (!current) return;
-    const addr = encodeURIComponent(
-      [current.sale.clients?.address, current.city].filter(Boolean).join(', ')
-    );
+    setInstallSaving(true);
+    try {
+      await recebimentosService.markInstallmentsReceived(ids);
+      const receivedAmt = (current.sale.sale_installments ?? [])
+        .filter(i => ids.includes(i.id))
+        .reduce((a, i) => a + i.amount, 0);
+
+      setShowInstallModal(false);
+      await cardRef.current?.animateOut('right');
+      setRemaining(p => p.slice(1));
+      setReceived(r => r + 1);
+      setCollected(c => c + receivedAmt);
+    } catch (e: any) {
+      Alert.alert('Erro', e.message);
+    } finally { setInstallSaving(false); }
+  };
+
+  const handleSkip       = () => { setSkipped(p => [...p, remaining[0]]); setRemaining(p => p.slice(1)); };
+  const handlePularPress = () => { cardRef.current?.animateOut('left').then(handleSkip); };
+  const openMaps         = () => {
+    if (!current) return;
+    const addr = encodeURIComponent([current.sale.clients?.address, current.city].filter(Boolean).join(', '));
     Linking.openURL(`https://maps.google.com/maps?q=${addr}`);
   };
 
   if (isDone) {
-    return (
-      <CompletionView
-        received={received}
-        totalCollected={collected}
-        skipped={skipped}
-        onBack={onBack}
-      />
-    );
+    return <CompletionView received={received} totalCollected={collected} skipped={skipped} onBack={onBack} />;
   }
 
   const progress = received / total;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.light.main, paddingBottom: 100 }}>
+    <View className="screen pb-[100px]">
       {/* Progress header */}
-      <View style={sw.progressHeader}>
-        <TouchableOpacity onPress={onBack} style={sw.backBtn}>
-          <Feather name="arrow-left" size={20} color={colors.primary.dark} />
+      <View className="flex-row items-center px-4 py-3 bg-white border-b border-light-dark">
+        <TouchableOpacity onPress={onBack} className="p-1">
+          <Feather name="arrow-left" size={20} color="#3C096C" />
         </TouchableOpacity>
 
-        <View style={{ flex: 1, marginHorizontal: 12 }}>
-          <Text style={sw.progressLabel}>
+        <View className="flex-1 mx-3">
+          <Text className="text-[11px] text-primary font-semibold mb-1.5">
             {received} de {total} recebimentos · {renderPrice(collected)}
           </Text>
-          <View style={sw.progressTrack}>
-            <View style={[sw.progressFill, { width: `${progress * 100}%` as any }]} />
+          <View className="h-1 bg-light-dark rounded-sm">
+            <View
+              className="h-1 bg-secondary-dark rounded-sm"
+              style={{ width: `${progress * 100}%` as any }}
+            />
           </View>
         </View>
 
-        <Text style={sw.progressRemaining}>{remaining.length} rest.</Text>
+        <Text className="text-[11px] font-bold text-primary-dark">{remaining.length} rest.</Text>
       </View>
 
       {/* Card stack OR map */}
       {showMap ? (
-        <View style={sw.stackArea}>
+        <View className="flex-1 mx-4 my-3 relative">
           <RouteMap
             stops={initialRoute}
             currentStopId={current.sale.id}
@@ -890,12 +1135,15 @@ function RouteSwipeView({
           />
         </View>
       ) : (
-        <View style={sw.stackArea}>
+        <View className="flex-1 mx-4 my-3 relative">
           {nextStop && (
-            <View style={sw.cardBehind}>
-              <Text style={sw.behindName}>{nextStop.sale.clients?.name}</Text>
-              <Text style={sw.behindCity}>{nextStop.city}</Text>
-              <Text style={sw.behindAmt}>{renderPrice(nextStop.total)}</Text>
+            <View
+              className="items-center justify-center opacity-75 bg-light rounded-[20px] elevation-2"
+              style={{ position: 'absolute', top: 12, left: 14, right: 14, bottom: -12, zIndex: 0 }}
+            >
+              <Text className="text-base font-bold text-primary-dark">{nextStop.sale.clients?.name}</Text>
+              <Text className="text-xs text-primary mt-0.5">{nextStop.city}</Text>
+              <Text className="text-sm font-bold text-secondary-dark mt-1">{renderPrice(nextStop.total)}</Text>
             </View>
           )}
           <SwipeCard
@@ -909,81 +1157,74 @@ function RouteSwipeView({
       )}
 
       {/* Action buttons */}
-      <View style={sw.actionRow}>
+      <View className="flex-row justify-between items-center px-8 py-3 bg-white border-t border-light-dark">
         <TouchableOpacity
-          style={[sw.btnSkip, showMap && { opacity: 0.4 }]}
+          className="items-center justify-center w-[72px] h-[72px] rounded-full bg-[#FFF0F0] border-2 border-danger gap-0.5"
+          style={showMap ? { opacity: 0.4 } : undefined}
           onPress={showMap ? undefined : handlePularPress}
         >
-          <Feather name="x" size={26} color={colors.danger.main} />
-          <Text style={[sw.btnLbl, { color: colors.danger.main }]}>Pular</Text>
+          <Feather name="x" size={26} color="#DF1515" />
+          <Text className="text-[10px] font-bold text-danger text-center">Pular</Text>
         </TouchableOpacity>
 
-        {/* Map toggle button */}
         <TouchableOpacity
-          style={[sw.btnNav, showMap && { backgroundColor: colors.primary.dark }]}
+          className="w-[52px] h-[52px] rounded-full items-center justify-center border"
+          style={{ backgroundColor: showMap ? '#3C096C' : '#E1DAE8', borderColor: '#8B5A9640' }}
           onPress={() => setShowMap(v => !v)}
         >
-          <Feather
-            name={showMap ? 'layers' : 'map'}
-            size={22}
-            color={showMap ? '#fff' : colors.primary.dark}
-          />
+          <Feather name={showMap ? 'layers' : 'map'} size={22} color={showMap ? '#fff' : '#3C096C'} />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[sw.btnReceive, showMap && { opacity: 0.4 }]}
+          className="items-center justify-center w-[72px] h-[72px] rounded-full bg-secondary-dark gap-0.5"
+          style={showMap ? { opacity: 0.4 } : undefined}
           onPress={showMap ? undefined : handleRequestReceive}
         >
           <Feather name="check" size={26} color="#fff" />
-          <Text style={[sw.btnLbl, { color: '#fff' }]}>Recebido</Text>
+          <Text className="text-[10px] font-bold text-white text-center">Recebido</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Hint */}
       {!showMap && (
-        <Text style={sw.swipeHint}>← arraste para pular · recebido para direita →</Text>
+        <Text className="text-[10px] text-primary-light text-center pb-2 bg-white">
+          ← arraste para pular · recebido para direita →
+        </Text>
       )}
 
-      {/* Confirm modal */}
+      {/* À vista confirm modal */}
       <Modal visible={showConfirm} transparent animationType="slide">
         <TouchableOpacity
-          style={s.overlay}
+          className="modal-overlay-bottom"
           activeOpacity={1}
           onPress={() => !saving && setShowConfirm(false)}
         >
-          <TouchableOpacity activeOpacity={1} style={sw.confirmSheet}>
-            <Text style={sw.confirmTitle}>Confirmar Recebimento</Text>
-            <Text style={sw.confirmClient}>{current?.sale.clients?.name}</Text>
-
-            <Text style={s.sheetLabel}>Valor Recebido (R$)</Text>
+          <TouchableOpacity activeOpacity={1} className="modal-sheet-bottom">
+            <Text className="text-lg font-bold text-primary-dark text-center mb-1">Confirmar Recebimento</Text>
+            <Text className="text-sm text-primary text-center mb-4">{current?.sale.clients?.name}</Text>
+            <Text className="label-upper mt-2">Valor Recebido (R$)</Text>
             <TextInput
-              style={s.amountInput}
+              className="amount-input"
               value={amountStr}
               onChangeText={setAmountStr}
               keyboardType="decimal-pad"
               selectTextOnFocus
               autoFocus
             />
-
-            <View style={{ flexDirection: 'row' }}>
-              <Button
-                title="Cancelar"
-                variant="primary-dark"
-                style={{ flex: 1, marginRight: 6 }}
-                onPress={() => setShowConfirm(false)}
-                disabled={saving}
-              />
-              <Button
-                title={saving ? 'Salvando...' : 'Confirmar'}
-                variant="secondary"
-                style={{ flex: 1.5 }}
-                onPress={handleConfirmReceive}
-                disabled={saving}
-              />
+            <View className="flex-row">
+              <Button title="Cancelar" variant="primary-dark" className="flex-1 mr-1.5" onPress={() => setShowConfirm(false)} disabled={saving} />
+              <Button title={saving ? 'Salvando...' : 'Confirmar'} variant="secondary" className="flex-[1.5]" onPress={handleConfirmReceive} disabled={saving} />
             </View>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* Installment modal */}
+      <InstallmentModal
+        sale={showInstallModal && current ? current.sale : null}
+        onClose={() => setShowInstallModal(false)}
+        onConfirm={handleConfirmInstallments}
+        saving={installSaving}
+      />
     </View>
   );
 }
@@ -991,19 +1232,19 @@ function RouteSwipeView({
 // ── RotaRecebimento ───────────────────────────────────────────────────────────
 
 function RotaRecebimento() {
-  const [workHours, setWorkHours] = useState('8');
-  const [avgStop,   setAvgStop]   = useState('15');
+  const [workHours,  setWorkHours]  = useState('8');
+  const [avgStop,    setAvgStop]    = useState('15');
   const [targetDate, setTargetDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
-  const [route,     setRoute]     = useState<RouteStop[]>([]);
-  const [excluded,  setExcluded]  = useState<RouteStop[]>([]);
-  const [mode,      setMode]      = useState<'config' | 'swipe'>('config');
-  const [loading,   setLoading]   = useState(false);
+  const [route,      setRoute]      = useState<RouteStop[]>([]);
+  const [excluded,   setExcluded]   = useState<RouteStop[]>([]);
+  const [mode,       setMode]       = useState<'config' | 'swipe'>('config');
+  const [loading,    setLoading]    = useState(false);
   const [showExcluded, setShowExcluded] = useState(false);
 
   const generate = async () => {
-    const hours  = parseFloat(workHours.replace(',', '.'));
-    const mins   = parseFloat(avgStop.replace(',', '.'));
+    const hours = parseFloat(workHours.replace(',', '.'));
+    const mins  = parseFloat(avgStop.replace(',', '.'));
     if (isNaN(hours) || hours <= 0 || isNaN(mins) || mins <= 0) {
       Alert.alert('Parâmetros inválidos', 'Preencha horas e tempo por parada.');
       return;
@@ -1011,10 +1252,7 @@ function RotaRecebimento() {
     setLoading(true);
     try {
       const sales = await recebimentosService.getPending();
-      if (sales.length === 0) {
-        Alert.alert('Tudo em dia!', 'Não há recebimentos pendentes.');
-        return;
-      }
+      if (sales.length === 0) { Alert.alert('Tudo em dia!', 'Não há recebimentos pendentes.'); return; }
       const { route: r, excluded: ex } = buildRoute(sales, hours, mins, targetDate);
       setRoute(r);
       setExcluded(ex);
@@ -1027,52 +1265,48 @@ function RotaRecebimento() {
   };
 
   if (mode === 'swipe') {
-    return (
-      <RouteSwipeView
-        initialRoute={route}
-        onBack={() => setMode('config')}
-      />
-    );
+    return <RouteSwipeView initialRoute={route} onBack={() => setMode('config')} />;
   }
 
-  // Config screen
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-      <View style={r.configCard}>
-        <Text style={r.configTitle}>Parâmetros da Rota</Text>
+      {/* Config card */}
+      <View className="m-4 bg-white rounded-[14px] p-5 elevation-2">
+        <Text className="text-base font-bold text-primary-dark mb-4">Parâmetros da Rota</Text>
 
-        <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-          <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={r.configLabel}>Horas disponíveis</Text>
+        <View className="flex-row mb-3">
+          <View className="flex-1 mr-2">
+            <Text className="label-upper">Horas disponíveis</Text>
             <TextInput
-              style={r.configInput}
+              className="bg-light rounded-lg p-3 text-[22px] font-bold text-primary-dark text-center"
               value={workHours}
               onChangeText={setWorkHours}
               keyboardType="decimal-pad"
               placeholder="8"
-              placeholderTextColor={colors.primary.light}
+              placeholderTextColor="#8B5A96"
             />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={r.configLabel}>Min. por parada</Text>
+          <View className="flex-1">
+            <Text className="label-upper">Min. por parada</Text>
             <TextInput
-              style={r.configInput}
+              className="bg-light rounded-lg p-3 text-[22px] font-bold text-primary-dark text-center"
               value={avgStop}
               onChangeText={setAvgStop}
               keyboardType="decimal-pad"
               placeholder="15"
-              placeholderTextColor={colors.primary.light}
+              placeholderTextColor="#8B5A96"
             />
           </View>
         </View>
 
-        <Text style={r.configLabel}>Data da rota</Text>
-        <TouchableOpacity style={r.datePick} onPress={() => setShowPicker(true)}>
-          <Feather name="calendar" size={16} color={colors.primary.dark} />
-          <Text style={r.datePickTxt}>
-            {targetDate.toLocaleDateString('pt-BR', {
-              weekday: 'long', day: '2-digit', month: 'long',
-            })}
+        <Text className="label-upper">Data da rota</Text>
+        <TouchableOpacity
+          className="flex-row items-center bg-light rounded-lg p-3 mb-3 gap-2"
+          onPress={() => setShowPicker(true)}
+        >
+          <Feather name="calendar" size={16} color="#3C096C" />
+          <Text className="text-sm text-primary-dark font-semibold capitalize">
+            {targetDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
           </Text>
         </TouchableOpacity>
 
@@ -1090,34 +1324,34 @@ function RotaRecebimento() {
           variant="secondary"
           disabled={loading}
           onPress={generate}
-          icon={<Feather name="map-pin" size={16} color={colors.dark.main} />}
+          icon={<Feather name="map-pin" size={16} color="#0E0F0C" />}
         />
       </View>
 
       {/* Hint box */}
-      <View style={r.hintBox}>
-        <Feather name="info" size={16} color={colors.primary.main} />
-        <Text style={r.hintTxt}>
+      <View className="flex-row items-start gap-2 bg-primary/15 mx-4 rounded-[10px] p-3.5 mb-2">
+        <Feather name="info" size={16} color="#5A189A" />
+        <Text className="flex-1 text-xs text-primary leading-[18px]">
           A rota agrupa paradas por cidade, prioriza atrasados e respeita seu tempo disponível.
-          Após gerar, use o cartão para confirmar ou pular cada parada.
+          Vendas parceladas reaparecem a cada mês enquanto houver parcelas pendentes.
         </Text>
       </View>
 
       {excluded.length > 0 && (
-        <View style={{ paddingHorizontal: 16 }}>
+        <View className="px-4">
           <TouchableOpacity
-            style={r.excludedToggle}
+            className="flex-row items-center justify-center gap-2 bg-light-dark rounded-lg p-3 mb-3"
             onPress={() => setShowExcluded(v => !v)}
           >
-            <Feather name={showExcluded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primary.main} />
-            <Text style={r.excludedTxt}>
+            <Feather name={showExcluded ? 'chevron-up' : 'chevron-down'} size={16} color="#5A189A" />
+            <Text className="text-xs text-primary font-semibold">
               {excluded.length} paradas não incluídas na última rota
             </Text>
           </TouchableOpacity>
           {showExcluded && excluded.map((stop, i) => (
-            <View key={i} style={r.exCard}>
-              <Text style={r.exName}>{stop.sale.clients?.name}</Text>
-              <Text style={r.exDetail}>{stop.city} · {renderPrice(stop.total)}</Text>
+            <View key={i} className="bg-white rounded-lg p-3 mb-2 opacity-60 border-l-[3px] border-l-primary-light">
+              <Text className="text-[13px] font-bold text-primary-dark">{stop.sale.clients?.name}</Text>
+              <Text className="text-[11px] text-primary mt-0.5">{stop.city} · {renderPrice(stop.total)}</Text>
             </View>
           ))}
         </View>
@@ -1134,25 +1368,23 @@ export function Recebimentos() {
   const [tab, setTab] = useState<TabType>('manual');
 
   return (
-    <View style={s.container}>
-      <View style={s.tabBar}>
+    <View className="screen">
+      <View className="flex-row bg-light-dark border-b border-primary-light/30">
         <TouchableOpacity
-          style={[s.tab, tab === 'manual' && s.tabOn]}
+          className={`flex-1 flex-row items-center justify-center py-3.5 gap-1.5 border-b-2 ${tab === 'manual' ? 'border-b-primary-dark' : 'border-b-transparent'}`}
           onPress={() => setTab('manual')}
         >
-          <Feather name="dollar-sign" size={14}
-            color={tab === 'manual' ? colors.primary.dark : colors.primary.main} />
-          <Text style={[s.tabTxt, tab === 'manual' && s.tabTxtOn]}>
+          <Feather name="dollar-sign" size={14} color={tab === 'manual' ? '#3C096C' : '#5A189A'} />
+          <Text className={`text-xs font-semibold ${tab === 'manual' ? 'text-primary-dark font-bold' : 'text-primary'}`}>
             Recebimento Manual
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[s.tab, tab === 'rota' && s.tabOn]}
+          className={`flex-1 flex-row items-center justify-center py-3.5 gap-1.5 border-b-2 ${tab === 'rota' ? 'border-b-primary-dark' : 'border-b-transparent'}`}
           onPress={() => setTab('rota')}
         >
-          <Feather name="map-pin" size={14}
-            color={tab === 'rota' ? colors.primary.dark : colors.primary.main} />
-          <Text style={[s.tabTxt, tab === 'rota' && s.tabTxtOn]}>
+          <Feather name="map-pin" size={14} color={tab === 'rota' ? '#3C096C' : '#5A189A'} />
+          <Text className={`text-xs font-semibold ${tab === 'rota' ? 'text-primary-dark font-bold' : 'text-primary'}`}>
             Rota de Recebimento
           </Text>
         </TouchableOpacity>
@@ -1162,356 +1394,3 @@ export function Recebimentos() {
     </View>
   );
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.light.main },
-
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: colors.light.dark,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.primary.light + '30',
-  },
-  tab: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: 'transparent', gap: 6,
-  },
-  tabOn:    { borderBottomColor: colors.primary.dark },
-  tabTxt:   { fontSize: 12, fontWeight: '600', color: colors.primary.main },
-  tabTxtOn: { color: colors.primary.dark, fontWeight: 'bold' },
-
-  summaryBar: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    backgroundColor: colors.primary.dark, paddingHorizontal: 20, paddingVertical: 14,
-  },
-  sumLabel: { fontSize: 11, color: 'rgba(255,255,255,0.65)', marginBottom: 2 },
-  sumValue: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.light.dark,
-    marginHorizontal: 16, marginTop: 10, marginBottom: 4,
-    paddingHorizontal: 14, borderRadius: 10, minHeight: 44, gap: 8,
-  },
-  searchInput: { flex: 1, fontSize: 14, color: colors.primary.dark, fontWeight: '500' },
-
-  chipRow: { flexDirection: 'row', paddingHorizontal: 12, marginBottom: 10, gap: 6 },
-  chip:    { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: colors.light.dark },
-  chipOn:  { backgroundColor: colors.primary.dark },
-  chipTxt:   { fontSize: 11, fontWeight: '600', color: colors.primary.main },
-  chipTxtOn: { color: '#fff' },
-
-  card: {
-    backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 8,
-    borderLeftWidth: 4, elevation: 1, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 2,
-  },
-  cardRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  cardName:  { fontSize: 15, fontWeight: 'bold', color: colors.primary.dark, flex: 1, marginRight: 8 },
-  cardTotal: { fontSize: 15, fontWeight: 'bold', color: colors.secondary.dark },
-  cardAddr:  { fontSize: 12, color: colors.primary.main, flex: 1, marginRight: 8 },
-  cardDue:   { fontSize: 11, color: colors.primary.main },
-  cardItems: { fontSize: 11, color: colors.primary.light },
-
-  badge:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  badgeTxt: { fontSize: 10, fontWeight: 'bold', color: '#fff' },
-
-  empty:    { alignItems: 'center', paddingVertical: 56 },
-  emptyTxt: { fontSize: 15, color: colors.primary.main, marginTop: 14, fontWeight: '500' },
-
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, paddingBottom: 40,
-  },
-  sheetHead: {
-    borderTopWidth: 4, marginHorizontal: -24, marginTop: -24,
-    paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16, marginBottom: 16,
-    backgroundColor: colors.light.main, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-  },
-  sheetTitle: { fontSize: 20, fontWeight: 'bold', color: colors.primary.dark },
-  sheetSub:   { fontSize: 13, color: colors.primary.main, marginTop: 2 },
-  sheetLabel: { fontSize: 11, fontWeight: 'bold', color: colors.primary.main, textTransform: 'uppercase', marginBottom: 8, marginTop: 16 },
-  itemList: { marginBottom: 4 },
-  itemRow:  { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.light.dark },
-  itemTxt:  { fontSize: 14, color: colors.primary.dark },
-  itemPrice:{ fontSize: 14, color: colors.primary.main, fontWeight: '600' },
-  amountInput: {
-    backgroundColor: colors.light.main, borderRadius: 10, padding: 14,
-    fontSize: 28, fontWeight: 'bold', color: colors.primary.dark, textAlign: 'center', marginBottom: 16,
-  },
-});
-
-// Swipe view styles
-const sw = StyleSheet.create({
-  // Card (current)
-  card: {
-    backgroundColor: colors.light.dark,
-    borderRadius: 20,
-    padding: 24,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    zIndex: 10,
-  },
-  cardInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  clientName: { fontSize: 22, fontWeight: 'bold', color: colors.primary.dark, textAlign: 'center', marginBottom: 4 },
-  address:    { fontSize: 13, color: colors.primary.main, textAlign: 'center', marginBottom: 20, paddingHorizontal: 8 },
-  amount:     { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 16 },
-  divider:    { width: '80%', height: 1, backgroundColor: colors.primary.light + '40', marginVertical: 12 },
-  item:       { fontSize: 13, color: colors.primary.dark, textAlign: 'center', marginBottom: 4 },
-  dateText:   { fontSize: 12, color: colors.primary.main, textAlign: 'center', marginBottom: 2 },
-  statusPill: { marginTop: 16, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-  statusPillTxt: { fontSize: 12, fontWeight: 'bold', color: '#fff', letterSpacing: 0.5 },
-
-  // Swipe stamps (Tinder-style)
-  stamp: {
-    position: 'absolute',
-    borderWidth: 3,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    top: 28,
-    zIndex: 20,
-  },
-  stampRight: {
-    left: 20,
-    borderColor: '#00C851',
-    transform: [{ rotate: '-15deg' }],
-  },
-  stampLeft: {
-    right: 20,
-    borderColor: colors.danger.main,
-    transform: [{ rotate: '15deg' }],
-  },
-  stampTxt: { fontSize: 22, fontWeight: 'bold', letterSpacing: 2 },
-
-  // Card behind (next stop peek)
-  cardBehind: {
-    position: 'absolute',
-    top: 12, left: 14, right: 14, bottom: -12,
-    backgroundColor: colors.light.main,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 0,
-    opacity: 0.75,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-  behindName: { fontSize: 16, fontWeight: 'bold', color: colors.primary.dark },
-  behindCity: { fontSize: 12, color: colors.primary.main, marginTop: 2 },
-  behindAmt:  { fontSize: 14, fontWeight: 'bold', color: colors.secondary.dark, marginTop: 4 },
-
-  // Stack area
-  stackArea: {
-    flex: 1,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    position: 'relative',
-  },
-
-  // Progress header
-  progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.light.dark,
-  },
-  backBtn:         { padding: 4 },
-  progressLabel:   { fontSize: 11, color: colors.primary.main, fontWeight: '600', marginBottom: 6 },
-  progressTrack:   { height: 4, backgroundColor: colors.light.dark, borderRadius: 2 },
-  progressFill:    { height: 4, backgroundColor: colors.secondary.dark, borderRadius: 2 },
-  progressRemaining:{ fontSize: 11, fontWeight: 'bold', color: colors.primary.dark },
-
-  // Action buttons
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: colors.light.dark,
-  },
-  btnSkip: {
-    alignItems: 'center', justifyContent: 'center',
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#FFF0F0',
-    borderWidth: 2, borderColor: colors.danger.main,
-    gap: 2,
-  },
-  btnNav: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: colors.light.dark,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.primary.light + '40',
-  },
-  btnReceive: {
-    alignItems: 'center', justifyContent: 'center',
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: colors.secondary.dark,
-    gap: 2,
-  },
-  btnLbl: { fontSize: 10, fontWeight: 'bold', textAlign: 'center' },
-
-  swipeHint: {
-    fontSize: 10, color: colors.primary.light, textAlign: 'center',
-    paddingBottom: 8, backgroundColor: '#fff',
-  },
-
-  // Confirm sheet
-  confirmSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, paddingBottom: 40,
-  },
-  confirmTitle:  { fontSize: 18, fontWeight: 'bold', color: colors.primary.dark, textAlign: 'center', marginBottom: 4 },
-  confirmClient: { fontSize: 14, color: colors.primary.main, textAlign: 'center', marginBottom: 8 },
-
-  // Completion
-  completion: { flex: 1, padding: 24, justifyContent: 'center', paddingBottom: 120 },
-  completionCard: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 32,
-    alignItems: 'center', marginBottom: 16,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4,
-  },
-  completionTitle: { fontSize: 24, fontWeight: 'bold', color: colors.primary.dark, marginTop: 16, marginBottom: 24 },
-  completionStats: { flexDirection: 'row', width: '100%', marginBottom: 20 },
-  statItem: { flex: 1, alignItems: 'center', gap: 4 },
-  statVal:  { fontSize: 18, fontWeight: 'bold', color: colors.primary.dark, textAlign: 'center' },
-  statLbl:  { fontSize: 11, color: colors.primary.main },
-  statDiv:  { width: 1, backgroundColor: colors.light.dark, marginVertical: 4 },
-  skippedBox: {
-    width: '100%', backgroundColor: colors.light.main, borderRadius: 10, padding: 16,
-  },
-  skippedTitle: { fontSize: 13, fontWeight: 'bold', color: colors.primary.dark, marginBottom: 8 },
-  skippedItem:  { fontSize: 12, color: colors.primary.main, marginBottom: 4 },
-  skippedHint:  { fontSize: 11, color: colors.primary.light, marginTop: 8, fontStyle: 'italic' },
-});
-
-// Config / route styles
-const r = StyleSheet.create({
-  configCard: {
-    margin: 16, backgroundColor: '#fff', borderRadius: 14, padding: 20,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4,
-  },
-  configTitle: { fontSize: 16, fontWeight: 'bold', color: colors.primary.dark, marginBottom: 16 },
-  configLabel: { fontSize: 11, fontWeight: 'bold', color: colors.primary.main, textTransform: 'uppercase', marginBottom: 6 },
-  configInput: {
-    backgroundColor: colors.light.main, borderRadius: 8, padding: 12,
-    fontSize: 22, fontWeight: 'bold', color: colors.primary.dark, textAlign: 'center',
-  },
-  datePick: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.light.main,
-    borderRadius: 8, padding: 12, marginBottom: 12, gap: 8,
-  },
-  datePickTxt: { fontSize: 14, color: colors.primary.dark, fontWeight: '600', textTransform: 'capitalize' },
-
-  hintBox: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
-    backgroundColor: colors.primary.main + '15',
-    marginHorizontal: 16, borderRadius: 10, padding: 14, marginBottom: 8,
-  },
-  hintTxt: { flex: 1, fontSize: 12, color: colors.primary.main, lineHeight: 18 },
-
-  excludedToggle: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, backgroundColor: colors.light.dark, borderRadius: 8,
-    padding: 12, marginBottom: 12,
-  },
-  excludedTxt: { fontSize: 12, color: colors.primary.main, fontWeight: '600' },
-
-  exCard: {
-    backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 8,
-    opacity: 0.6, borderLeftWidth: 3, borderLeftColor: colors.primary.light,
-  },
-  exName:   { fontSize: 13, fontWeight: 'bold', color: colors.primary.dark },
-  exDetail: { fontSize: 11, color: colors.primary.main, marginTop: 2 },
-});
-
-// Map styles
-const m = StyleSheet.create({
-  geocodingBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: colors.primary.dark,
-    paddingHorizontal: 16, paddingVertical: 10,
-    zIndex: 10,
-  },
-  geocodingTxt: { fontSize: 12, color: '#fff', fontWeight: '600' },
-
-  infoBar: {
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 12, paddingVertical: 6,
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    zIndex: 5,
-  },
-  infoTxt: { fontSize: 11, color: '#fff', textAlign: 'center' },
-
-  // Error screen
-  errorContainer: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.light.main, padding: 24,
-  },
-  errorCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 24,
-    alignItems: 'center', width: '100%',
-    elevation: 2, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4,
-  },
-  errorIconWrap: { position: 'relative', marginBottom: 16 },
-  errorBadge: {
-    position: 'absolute', bottom: -2, right: -4,
-    backgroundColor: colors.danger.main,
-    width: 20, height: 20, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#fff',
-  },
-  errorTitle: {
-    fontSize: 16, fontWeight: 'bold', color: colors.primary.dark,
-    textAlign: 'center', marginBottom: 10,
-  },
-  errorBody: {
-    fontSize: 13, color: colors.primary.main, textAlign: 'center',
-    lineHeight: 20, marginBottom: 16,
-  },
-  errorSteps: { width: '100%', gap: 6 },
-  errorStep:  { fontSize: 12, color: colors.primary.dark, lineHeight: 18 },
-  errorCode: {
-    backgroundColor: colors.primary.dark, borderRadius: 6,
-    paddingHorizontal: 12, paddingVertical: 8, marginVertical: 4,
-  },
-  errorCodeTxt: { fontSize: 11, color: '#C4D680', fontFamily: Platform.OS === 'android' ? 'monospace' : 'Courier' },
-
-  // Custom pin marker
-  pin: {
-    width: 32, height: 32, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#fff',
-    elevation: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3, shadowRadius: 3,
-  },
-  pinCurrent: {
-    width: 40, height: 40, borderRadius: 20, borderWidth: 3,
-  },
-  pinTxt: { fontSize: 13, fontWeight: 'bold', color: '#fff' },
-  pinTail: {
-    width: 0, height: 0,
-    borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8,
-    borderLeftColor: 'transparent', borderRightColor: 'transparent',
-    alignSelf: 'center',
-  },
-});

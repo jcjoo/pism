@@ -55,16 +55,37 @@ export const salesService = {
     if (saleError) throw saleError;
 
     // 2. Create Items
-    const itemsToInsert = items.map(item => ({
-      ...item,
-      sale_id: saleData.id,
-    }));
-
+    const itemsToInsert = items.map(item => ({ ...item, sale_id: saleData.id }));
     const { error: itemsError } = await supabase
       .from('sale_items')
       .insert(itemsToInsert as TablesInsert<'sale_items'>[]);
 
     if (itemsError) throw itemsError;
+
+    // 3. Generate installment records for parcelated sales
+    if (sale.payment === 'installments' && sale.installments && sale.installments > 1) {
+      const total = items.reduce((a, i) => a + (i.price as number) * (i.quantity as number), 0);
+      const installmentAmount = Math.round((total / sale.installments) * 100) / 100;
+      const firstDue = new Date(sale.dueDate as string);
+
+      const installmentRecords = Array.from({ length: sale.installments }, (_, idx) => {
+        const due = new Date(firstDue);
+        due.setMonth(due.getMonth() + idx);
+        return {
+          sale_id: saleData.id,
+          installment_number: idx + 1,
+          due_date: due.toISOString(),
+          amount: installmentAmount,
+          user_id: sale.user_id as string,
+        };
+      });
+
+      const { error: installError } = await supabase
+        .from('sale_installments')
+        .insert(installmentRecords);
+
+      if (installError) throw installError;
+    }
 
     return saleData;
   },
