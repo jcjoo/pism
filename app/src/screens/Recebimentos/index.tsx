@@ -21,7 +21,9 @@ import {
   Animated,
   PanResponder,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button } from '@/components';
@@ -479,6 +481,247 @@ const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
   }
 );
 
+// ── Geocoding ─────────────────────────────────────────────────────────────────
+
+type GeoCoord = { lat: number; lng: number };
+
+async function geocodeAddress(address: string, city: string, uf: string): Promise<GeoCoord | null> {
+  const query = encodeURIComponent(
+    [address, city, uf, 'Brasil'].filter(Boolean).join(', ')
+  );
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=br`,
+      { headers: { 'User-Agent': 'PISM-App/1.0' } }
+    );
+    const data = await res.json();
+    if (data?.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+  } catch {
+    // silently ignore geocoding errors for individual addresses
+  }
+  return null;
+}
+
+// ── MapErrorBoundary ──────────────────────────────────────────────────────────
+
+interface MapErrorBoundaryState { crashed: boolean; message: string }
+
+class MapErrorBoundary extends React.Component<
+  { children: React.ReactNode; onError: (msg: string) => void },
+  MapErrorBoundaryState
+> {
+  state: MapErrorBoundaryState = { crashed: false, message: '' };
+
+  static getDerivedStateFromError(error: Error): MapErrorBoundaryState {
+    return { crashed: true, message: error.message };
+  }
+
+  componentDidCatch(error: Error) {
+    this.props.onError(error.message);
+  }
+
+  render() {
+    if (this.state.crashed) return null;
+    return this.props.children;
+  }
+}
+
+// ── MapErrorScreen ────────────────────────────────────────────────────────────
+
+function MapErrorScreen({ message }: { message: string }) {
+  const isKeyMissing =
+    message.toLowerCase().includes('api') ||
+    message.toLowerCase().includes('key') ||
+    message.toLowerCase().includes('authentication') ||
+    message.toLowerCase().includes('authorization') ||
+    message === 'map_load_error';
+
+  return (
+    <View style={m.errorContainer}>
+      <View style={m.errorCard}>
+        <View style={m.errorIconWrap}>
+          <Feather name="map" size={40} color={colors.primary.light} />
+          <View style={m.errorBadge}>
+            <Feather name="alert-triangle" size={14} color="#fff" />
+          </View>
+        </View>
+
+        <Text style={m.errorTitle}>
+          {isKeyMissing ? 'Chave do Google Maps não configurada' : 'Erro ao carregar o mapa'}
+        </Text>
+
+        {isKeyMissing ? (
+          <>
+            <Text style={m.errorBody}>
+              Para exibir o mapa é necessário configurar uma chave de API do Google Maps.
+            </Text>
+            <View style={m.errorSteps}>
+              <Text style={m.errorStep}>1. Obtenha uma chave em console.cloud.google.com</Text>
+              <Text style={m.errorStep}>2. Adicione em android/local.properties:</Text>
+              <View style={m.errorCode}>
+                <Text style={m.errorCodeTxt}>GOOGLE_MAPS_API_KEY=SUA_CHAVE</Text>
+              </View>
+              <Text style={m.errorStep}>3. Faça rebuild: npx expo run:android</Text>
+              <Text style={m.errorStep}>4. Consulte o arquivo GoogleMaps.md do projeto</Text>
+            </View>
+          </>
+        ) : (
+          <Text style={m.errorBody}>
+            {message || 'Ocorreu um erro inesperado ao inicializar o mapa.'}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// ── RouteMap ──────────────────────────────────────────────────────────────────
+
+interface RouteMapProps {
+  stops: RouteStop[];
+  currentStopId: string;
+  geocodedCoords: Record<string, GeoCoord>;
+  onCoordsUpdate: (id: string, coord: GeoCoord) => void;
+}
+
+function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: RouteMapProps) {
+  const [geocoding,    setGeocoding]    = useState(false);
+  const [geocodingIdx, setGeocodingIdx] = useState(0);
+  const [mapError,     setMapError]     = useState('');
+  const mapRef      = useRef<MapView>(null);
+  const didGeocode  = useRef(false);
+
+  const handleError = useCallback((msg: string) => {
+    setMapError(msg || 'map_load_error');
+  }, []);
+
+  useEffect(() => {
+    if (didGeocode.current) return;
+    didGeocode.current = true;
+    const missing = stops.filter(s => !geocodedCoords[s.sale.id]);
+    if (missing.length === 0) fitMap();
+    else runGeocode(missing);
+  }, []);
+
+  const runGeocode = async (missing: RouteStop[]) => {
+    setGeocoding(true);
+    const newCoords: Record<string, GeoCoord> = {};
+    for (let i = 0; i < missing.length; i++) {
+      setGeocodingIdx(i + 1);
+      const stop = missing[i];
+      const coord = await geocodeAddress(
+        stop.sale.clients?.address || '',
+        stop.city,
+        stop.sale.clients?.municipio?.uf || ''
+      );
+      if (coord) {
+        newCoords[stop.sale.id] = coord;
+        onCoordsUpdate(stop.sale.id, coord);
+      }
+      if (i < missing.length - 1) {
+        await new Promise(r => setTimeout(r, 1200));
+      }
+    }
+    setGeocoding(false);
+    fitMap(newCoords);
+  };
+
+  const fitMap = (extra: Record<string, GeoCoord> = {}) => {
+    const all = { ...geocodedCoords, ...extra };
+    const coords = stops
+      .map(s => all[s.sale.id])
+      .filter((c): c is GeoCoord => !!c)
+      .map(c => ({ latitude: c.lat, longitude: c.lng }));
+    if (coords.length > 0 && mapRef.current) {
+      mapRef.current.fitToCoordinates(coords, {
+        edgePadding: { top: 80, right: 60, bottom: 80, left: 60 },
+        animated: true,
+      });
+    }
+  };
+
+  const polyline = stops
+    .map(s => geocodedCoords[s.sale.id])
+    .filter((c): c is GeoCoord => !!c)
+    .map(c => ({ latitude: c.lat, longitude: c.lng }));
+
+  const geocodedCount = stops.filter(s => geocodedCoords[s.sale.id]).length;
+  const total = stops.length;
+
+  const hasKey = !!process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  if (!hasKey || mapError) {
+    return <MapErrorScreen message={mapError || 'map_load_error'} />;
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      {geocoding && (
+        <View style={m.geocodingBar}>
+          <ActivityIndicator size="small" color="#fff" />
+          <Text style={m.geocodingTxt}>
+            Localizando endereços... {geocodingIdx}/{total - geocodedCount + geocodingIdx}
+          </Text>
+        </View>
+      )}
+
+      <View style={m.infoBar}>
+        <Text style={m.infoTxt}>
+          {geocodedCount}/{total} endereços encontrados · rota em linha reta
+        </Text>
+      </View>
+
+      <MapErrorBoundary onError={handleError}>
+        <MapView
+          ref={mapRef}
+          style={{ flex: 1 }}
+          provider={PROVIDER_GOOGLE}
+          showsUserLocation
+          showsMyLocationButton
+          showsCompass
+          toolbarEnabled={false}
+        >
+          {polyline.length > 1 && (
+            <Polyline
+              coordinates={polyline}
+              strokeColor={colors.primary.dark}
+              strokeWidth={2}
+              lineDashPattern={[10, 6]}
+            />
+          )}
+
+          {stops.map((stop, idx) => {
+            const coord = geocodedCoords[stop.sale.id];
+            if (!coord) return null;
+            const cfg    = STATUS[stop.status];
+            const isCurr = stop.sale.id === currentStopId;
+            const days   = stop.days;
+            return (
+              <Marker
+                key={stop.sale.id}
+                coordinate={{ latitude: coord.lat, longitude: coord.lng }}
+                title={`${idx + 1}. ${stop.sale.clients?.name}`}
+                description={
+                  renderPrice(stop.total) + ' · ' +
+                  (days < 0 ? `${Math.abs(days)}d atraso` : days === 0 ? 'Hoje' : `${days}d`)
+                }
+                anchor={{ x: 0.5, y: 1 }}
+              >
+                <View style={[m.pin, { backgroundColor: isCurr ? '#FFD700' : cfg.color }, isCurr && m.pinCurrent]}>
+                  <Text style={[m.pinTxt, isCurr && { color: colors.primary.dark }]}>{idx + 1}</Text>
+                </View>
+                <View style={[m.pinTail, { borderTopColor: isCurr ? '#FFD700' : cfg.color }]} />
+              </Marker>
+            );
+          })}
+        </MapView>
+      </MapErrorBoundary>
+    </View>
+  );
+}
+
 // ── CompletionView ────────────────────────────────────────────────────────────
 
 function CompletionView({
@@ -548,7 +791,13 @@ function RouteSwipeView({
   const [showConfirm, setShowConfirm] = useState(false);
   const [amountStr, setAmountStr] = useState('');
   const [saving,    setSaving]    = useState(false);
+  const [showMap,   setShowMap]   = useState(false);
+  const [geocodedCoords, setGeocodedCoords] = useState<Record<string, GeoCoord>>({});
   const cardRef = useRef<SwipeCardHandle>(null);
+
+  const handleCoordsUpdate = useCallback((id: string, coord: GeoCoord) => {
+    setGeocodedCoords(prev => ({ ...prev, [id]: coord }));
+  }, []);
 
   const current  = remaining[0];
   const nextStop = remaining[1];
@@ -630,46 +879,70 @@ function RouteSwipeView({
         <Text style={sw.progressRemaining}>{remaining.length} rest.</Text>
       </View>
 
-      {/* Card stack */}
-      <View style={sw.stackArea}>
-        {/* Next card peek (behind) */}
-        {nextStop && (
-          <View style={sw.cardBehind}>
-            <Text style={sw.behindName}>{nextStop.sale.clients?.name}</Text>
-            <Text style={sw.behindCity}>{nextStop.city}</Text>
-            <Text style={sw.behindAmt}>{renderPrice(nextStop.total)}</Text>
-          </View>
-        )}
-
-        {/* Current swipeable card */}
-        <SwipeCard
-          key={current.sale.id}
-          ref={cardRef}
-          stop={current}
-          onRequestReceive={handleRequestReceive}
-          onSwipeLeft={handleSkip}
-        />
-      </View>
+      {/* Card stack OR map */}
+      {showMap ? (
+        <View style={sw.stackArea}>
+          <RouteMap
+            stops={initialRoute}
+            currentStopId={current.sale.id}
+            geocodedCoords={geocodedCoords}
+            onCoordsUpdate={handleCoordsUpdate}
+          />
+        </View>
+      ) : (
+        <View style={sw.stackArea}>
+          {nextStop && (
+            <View style={sw.cardBehind}>
+              <Text style={sw.behindName}>{nextStop.sale.clients?.name}</Text>
+              <Text style={sw.behindCity}>{nextStop.city}</Text>
+              <Text style={sw.behindAmt}>{renderPrice(nextStop.total)}</Text>
+            </View>
+          )}
+          <SwipeCard
+            key={current.sale.id}
+            ref={cardRef}
+            stop={current}
+            onRequestReceive={handleRequestReceive}
+            onSwipeLeft={handleSkip}
+          />
+        </View>
+      )}
 
       {/* Action buttons */}
       <View style={sw.actionRow}>
-        <TouchableOpacity style={sw.btnSkip} onPress={handlePularPress}>
+        <TouchableOpacity
+          style={[sw.btnSkip, showMap && { opacity: 0.4 }]}
+          onPress={showMap ? undefined : handlePularPress}
+        >
           <Feather name="x" size={26} color={colors.danger.main} />
           <Text style={[sw.btnLbl, { color: colors.danger.main }]}>Pular</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={sw.btnNav} onPress={openMaps}>
-          <Feather name="navigation" size={22} color={colors.primary.dark} />
+        {/* Map toggle button */}
+        <TouchableOpacity
+          style={[sw.btnNav, showMap && { backgroundColor: colors.primary.dark }]}
+          onPress={() => setShowMap(v => !v)}
+        >
+          <Feather
+            name={showMap ? 'layers' : 'map'}
+            size={22}
+            color={showMap ? '#fff' : colors.primary.dark}
+          />
         </TouchableOpacity>
 
-        <TouchableOpacity style={sw.btnReceive} onPress={handleRequestReceive}>
+        <TouchableOpacity
+          style={[sw.btnReceive, showMap && { opacity: 0.4 }]}
+          onPress={showMap ? undefined : handleRequestReceive}
+        >
           <Feather name="check" size={26} color="#fff" />
           <Text style={[sw.btnLbl, { color: '#fff' }]}>Recebido</Text>
         </TouchableOpacity>
       </View>
 
       {/* Hint */}
-      <Text style={sw.swipeHint}>← arraste para pular · recebido para direita →</Text>
+      {!showMap && (
+        <Text style={sw.swipeHint}>← arraste para pular · recebido para direita →</Text>
+      )}
 
       {/* Confirm modal */}
       <Modal visible={showConfirm} transparent animationType="slide">
@@ -1167,4 +1440,78 @@ const r = StyleSheet.create({
   },
   exName:   { fontSize: 13, fontWeight: 'bold', color: colors.primary.dark },
   exDetail: { fontSize: 11, color: colors.primary.main, marginTop: 2 },
+});
+
+// Map styles
+const m = StyleSheet.create({
+  geocodingBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.primary.dark,
+    paddingHorizontal: 16, paddingVertical: 10,
+    zIndex: 10,
+  },
+  geocodingTxt: { fontSize: 12, color: '#fff', fontWeight: '600' },
+
+  infoBar: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 12, paddingVertical: 6,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    zIndex: 5,
+  },
+  infoTxt: { fontSize: 11, color: '#fff', textAlign: 'center' },
+
+  // Error screen
+  errorContainer: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.light.main, padding: 24,
+  },
+  errorCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 24,
+    alignItems: 'center', width: '100%',
+    elevation: 2, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4,
+  },
+  errorIconWrap: { position: 'relative', marginBottom: 16 },
+  errorBadge: {
+    position: 'absolute', bottom: -2, right: -4,
+    backgroundColor: colors.danger.main,
+    width: 20, height: 20, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#fff',
+  },
+  errorTitle: {
+    fontSize: 16, fontWeight: 'bold', color: colors.primary.dark,
+    textAlign: 'center', marginBottom: 10,
+  },
+  errorBody: {
+    fontSize: 13, color: colors.primary.main, textAlign: 'center',
+    lineHeight: 20, marginBottom: 16,
+  },
+  errorSteps: { width: '100%', gap: 6 },
+  errorStep:  { fontSize: 12, color: colors.primary.dark, lineHeight: 18 },
+  errorCode: {
+    backgroundColor: colors.primary.dark, borderRadius: 6,
+    paddingHorizontal: 12, paddingVertical: 8, marginVertical: 4,
+  },
+  errorCodeTxt: { fontSize: 11, color: '#C4D680', fontFamily: Platform.OS === 'android' ? 'monospace' : 'Courier' },
+
+  // Custom pin marker
+  pin: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#fff',
+    elevation: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3, shadowRadius: 3,
+  },
+  pinCurrent: {
+    width: 40, height: 40, borderRadius: 20, borderWidth: 3,
+  },
+  pinTxt: { fontSize: 13, fontWeight: 'bold', color: '#fff' },
+  pinTail: {
+    width: 0, height: 0,
+    borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent',
+    alignSelf: 'center',
+  },
 });
