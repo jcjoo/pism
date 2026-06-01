@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 export interface PendingSale {
   id: string;
   dueDate: string;
+  created_at: string;
   payment: string;
   installments: number | null;
   clients: {
@@ -30,6 +31,7 @@ export const recebimentosService = {
       .select(`
         id,
         dueDate,
+        created_at,
         payment,
         installments,
         clients (
@@ -59,12 +61,24 @@ export const recebimentosService = {
   async markReceived(saleId: string, amount: number): Promise<void> {
     const { error } = await supabase
       .from('sales')
-      .update({
-        received_at: new Date().toISOString(),
-        received_amount: amount,
-      })
+      .update({ received_at: new Date().toISOString(), received_amount: amount })
       .eq('id', saleId);
+    if (error) throw error;
+  },
 
+  async updateReceived(saleId: string, receivedAt: string, amount: number): Promise<void> {
+    const { error } = await supabase
+      .from('sales')
+      .update({ received_at: receivedAt, received_amount: amount })
+      .eq('id', saleId);
+    if (error) throw error;
+  },
+
+  async removeReceived(saleId: string): Promise<void> {
+    const { error } = await supabase
+      .from('sales')
+      .update({ received_at: null, received_amount: null })
+      .eq('id', saleId);
     if (error) throw error;
   },
 };

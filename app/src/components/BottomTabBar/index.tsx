@@ -1,19 +1,19 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors } from '../../theme';
-import { Feather } from '@expo/vector-icons';
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { colors } from "../../theme";
+import { Feather } from "@expo/vector-icons";
 
 interface TabBarProps {
-  activeTab: 'inicio' | 'novavenda' | 'vendas' | 'rota';
-  onTabPress: (tab: 'inicio' | 'novavenda' | 'vendas' | 'rota') => void;
+  activeTab: "inicio" | "novavenda" | "vendas" | "rota";
+  onTabPress: (tab: "inicio" | "novavenda" | "vendas" | "rota") => void;
 }
 
 export function BottomTabBar({ activeTab, onTabPress }: TabBarProps) {
   const tabs = [
-    { id: 'inicio', label: 'Início', icon: 'home' },
-    { id: 'novavenda', label: 'Nova Venda', icon: 'shopping-bag' },
-    { id: 'vendas', label: 'Vendas', icon: 'dollar-sign' },
-    { id: 'rota', label: 'Rota', icon: 'map' },
+    { id: "inicio", label: "Início", icon: "home" },
+    { id: "novavenda", label: "Nova Venda", icon: "shopping-bag" },
+    { id: "vendas", label: "Vendas", icon: "dollar-sign" },
+    { id: "rota", label: "Recebimentos", icon: "map" },
   ] as const;
 
   return (
@@ -43,25 +43,25 @@ export function BottomTabBar({ activeTab, onTabPress }: TabBarProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: colors.light.dark,
     borderRadius: 8,
     padding: 12,
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    justifyContent: "space-around",
+    alignItems: "center",
     marginVertical: 4,
   },
   tab: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   label: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.primary.dark,
     marginTop: 4,
   },
