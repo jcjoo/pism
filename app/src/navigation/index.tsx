@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import { Auth, NewSale, Sales, Products, Clients } from '../screens';
+import { Auth, NewSale, Sales, Products, Clients, Recebimentos } from '../screens';
 import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme';
 import { DateTime } from '../components/DateTime'
@@ -89,8 +89,9 @@ function AppTabs() {
 
       <Tab.Screen
         name="Rota"
+        component={Recebimentos}
         options={{
-          headerTitle: 'Rota',
+          headerTitle: 'Recebimentos',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabItem}>
               <Feather name="map" size={20} color={color} />
@@ -98,9 +99,7 @@ function AppTabs() {
             </View>
           ),
         }}
-      >
-        {() => <PlaceholderScreen name="Rota (Em breve)" />}
-      </Tab.Screen>
+      />
 
       {/* Hidden Screens that still show the Tab Bar */}
       <Tab.Screen

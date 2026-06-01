@@ -148,6 +148,8 @@ export type Database = {
           installments: number | null
           payment: Database["public"]["Enums"]["SalePayment"]
           user_id: string
+          received_at: string | null
+          received_amount: number | null
         }
         Insert: {
           clientId?: string | null
@@ -157,6 +159,8 @@ export type Database = {
           installments?: number | null
           payment?: Database["public"]["Enums"]["SalePayment"]
           user_id?: string
+          received_at?: string | null
+          received_amount?: number | null
         }
         Update: {
           clientId?: string | null
@@ -166,6 +170,8 @@ export type Database = {
           installments?: number | null
           payment?: Database["public"]["Enums"]["SalePayment"]
           user_id?: string
+          received_at?: string | null
+          received_amount?: number | null
         }
         Relationships: [
           {
