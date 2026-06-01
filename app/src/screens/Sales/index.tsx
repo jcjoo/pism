@@ -51,10 +51,10 @@ export function Sales() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const cData = await clientsService.getAll();
+        const cData = await clientsService.getAll(true);
         setClientsList(cData);
 
-        const pData = await productsService.getAll();
+        const pData = await productsService.getAll(true);
         setProductsList(pData);
       } catch (error) {
         console.error('Error loading data:', error);

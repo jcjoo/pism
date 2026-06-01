@@ -1,27 +1,95 @@
 import { supabase } from './supabase';
-import { Tables } from '../types/database.types';
+import { Tables, TablesInsert, TablesUpdate } from '../types/database.types';
 
 export type Client = Tables<'clients'>;
 
 export const clientsService = {
-  async getAll() {
-    const { data, error } = await supabase
+  async getAll(includeArchived = false) {
+    let query = supabase
       .from('clients')
-      .select('*')
+      .select('*, municipio(*, estado(*))')
       .order('name');
-    
+
+    if (!includeArchived) {
+      query = query.eq('is_archived', false);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
 
+
   async getById(id: string) {
     const { data, error } = await supabase
       .from('clients')
-      .select('*')
+      .select('*, municipio(*, estado(*))')
       .eq('id', id)
       .single();
-    
+
     if (error) throw error;
     return data;
+  },
+
+  async hasSales(id: string) {
+    const { count, error } = await supabase
+      .from('sales')
+      .select('*', { count: 'exact', head: true })
+      .eq('clientId', id);
+
+    if (error) throw error;
+    return (count || 0) > 0;
+  },
+
+  async archive(id: string) {
+    const { error } = await supabase
+      .from('clients')
+      .update({ is_archived: true })
+      .eq('id', id);
+
+    if (error) throw error;
+    return 'Sucesso';
+  },
+
+  async unarchive(id: string) {
+    const { error } = await supabase
+      .from('clients')
+      .update({ is_archived: false })
+      .eq('id', id);
+
+    if (error) throw error;
+    return 'Sucesso';
+  },
+
+  async create(client: TablesInsert<'clients'>) {
+    const { data: productData, error: productError } = await supabase
+      .from('clients')
+      .insert(client)
+      .select().single()
+
+    if (productError) throw productError
+    return productData
+  },
+
+  async updated(client: TablesUpdate<'clients'>) {
+    if (!client.id) throw new Error('Product ID is required for updates');
+
+    const { data, error } = await supabase
+      .from('clients')
+      .update(client)
+      .eq('id', client.id as string)
+
+    if (error) throw error;
+    return 'Sucesso'
+  },
+
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return 'Sucesso';
   }
 };

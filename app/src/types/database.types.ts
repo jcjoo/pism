@@ -18,40 +18,48 @@ export type Database = {
         Row: {
           address: string
           cep: string | null
-          city: string
           created_at: string
           email: string | null
           id: string
+          cpf: string | null
           name: string
           phone: string | null
-          state: string | null
+          municipio_id: number | null
           user_id: string
         }
         Insert: {
           address: string
           cep?: string | null
-          city: string
           created_at?: string
           email?: string | null
           id?: string
+          cpf?: string | null
           name: string
           phone?: string | null
-          state?: string | null
+          municipio_id?: number | null
           user_id?: string
         }
         Update: {
           address?: string
           cep?: string | null
-          city?: string
           created_at?: string
           email?: string | null
           id?: string
+          cpf?: string | null
           name?: string
           phone?: string | null
-          state?: string | null
+          municipio_id?: number | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipio"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       products: {
         Row: {
@@ -62,6 +70,7 @@ export type Database = {
           price: number
           stock: number
           user_id: string
+          is_archived: boolean
         }
         Insert: {
           created_at?: string
@@ -71,6 +80,7 @@ export type Database = {
           price: number
           stock?: number
           user_id?: string
+          is_archived?: boolean
         }
         Update: {
           created_at?: string
@@ -80,6 +90,7 @@ export type Database = {
           price?: number
           stock?: number
           user_id?: string
+          is_archived?: boolean
         }
         Relationships: []
       }
@@ -165,6 +176,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      estado: {
+        Row: {
+          codigouf: number
+          id: number
+          nome: string
+          regiao: number
+          uf: string
+        }
+        Insert: {
+          codigouf: number
+          id?: number
+          nome: string
+          regiao: number
+          uf: string
+        }
+        Update: {
+          codigouf?: number
+          id?: number
+          nome?: string
+          regiao?: number
+          uf?: string
+        }
+        Relationships: []
+      }
+      municipio: {
+        Row: {
+          codigo: number
+          id: number
+          nome: string
+          uf: string
+        }
+        Insert: {
+          codigo: number
+          id?: number
+          nome: string
+          uf: string
+        }
+        Update: {
+          codigo?: number
+          id?: number
+          nome?: string
+          uf?: string
+        }
+        Relationships: []
       }
     }
     Views: {

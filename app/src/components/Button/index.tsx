@@ -1,13 +1,14 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, View } from 'react-native';
 import { colors, typography } from '../../theme';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'primary-dark' | 'primary-light';
+  icon?: React.ReactNode;
 }
 
-export function Button({ title, variant = 'primary', style, ...rest }: ButtonProps) {
+export function Button({ title, variant = 'primary', icon, style, ...rest }: ButtonProps) {
   const getBackgroundColor = () => {
     switch (variant) {
       case 'primary': return colors.primary.main;
@@ -28,9 +29,15 @@ export function Button({ title, variant = 'primary', style, ...rest }: ButtonPro
 
   return (
     <TouchableOpacity
-      style={[styles.container, { backgroundColor: getBackgroundColor() }, style]}
+      style={[
+        styles.container, 
+        { backgroundColor: getBackgroundColor() },
+        icon ? styles.row : null,
+        style
+      ]}
       {...rest}
     >
+      {icon && <View style={styles.iconContainer}>{icon}</View>}
       <Text style={[styles.title, { color: getTextColor() }]}>
         {title}
       </Text>
@@ -51,5 +58,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: parseInt(typography.sizes.corpo, 10) || 16,
     fontWeight: 'bold',
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  iconContainer: {
+    marginRight: 10,
   },
 });

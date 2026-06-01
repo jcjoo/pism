@@ -1,33 +1,35 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { colors, typography } from '../../theme';
 
 export interface QuantitySelectorProps {
   value?: number;
-  onChange?: (val: number) => void;
+  onChange?: (val: number, direction: 'up' | 'down') => void;
   label?: string;
   min?: number;
 }
 
-export function QuantitySelector({ value, onChange, label = 'Quantidade', min = 1 }: QuantitySelectorProps) {
+export function QuantitySelector({ value, onChange, label = 'Quantidade', min = 0 }: QuantitySelectorProps) {
   const [internalQuantity, setInternalQuantity] = useState(min);
 
   const quantity = value !== undefined ? value : internalQuantity;
 
   const handleUpdate = (newVal: number) => {
     if (newVal < min) return;
+    const direction = newVal > quantity ? 'up' : 'down';
     setInternalQuantity(newVal);
-    if (onChange) onChange(newVal);
+    if (onChange) onChange(newVal, direction);
   };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={() => handleUpdate(quantity - 1)} style={styles.button}>
-        <Text style={styles.buttonText}>-</Text>
+        <Feather name="minus" size={20} color={colors.primary.main} />
       </TouchableOpacity>
-      <Text style={styles.text}>{label} {quantity > 0 ? `(${quantity})` : ''}</Text>
+      <Text style={styles.text}>{label}</Text>
       <TouchableOpacity onPress={() => handleUpdate(quantity + 1)} style={styles.button}>
-        <Text style={styles.buttonText}>+</Text>
+        <Feather name="plus" size={20} color={colors.primary.main} />
       </TouchableOpacity>
     </View>
   );
