@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import { Button } from '@/components';
+import { Button, useToast, useConfirm } from '@/components';
 import DetailsProduct from './DetailsProduct';
 import CadastroProduct from './CadastroProduct';
 
@@ -13,6 +13,8 @@ type Step = 'filter' | 'register' | 'details' | 'edit';
 
 export function Products() {
   const navigation = useNavigation();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [archivedList, setArchivedList] = useState<Product[]>([]);
   const [productSelected, setProductSelected] = useState<Product | null>(null);
@@ -46,7 +48,7 @@ export function Products() {
   const handleUnarchive = async (id: string) => {
     try {
       await productsService.unarchive(id);
-      Alert.alert('Sucesso', 'Produto desarquivado!');
+      toast.show('Produto desarquivado!', { type: 'success' });
       loadData();
     } catch (error) {
       console.error('Erro ao desarquivar:', error);
@@ -60,46 +62,37 @@ export function Products() {
       const hasSales = await productsService.hasSales(productSelected.id);
 
       if (hasSales) {
-        Alert.alert(
-          'Arquivar Produto',
-          'Este produto possui vendas vinculadas e não pode ser excluído. Deseja arquivá-lo?',
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Arquivar', onPress: async () => {
-                try {
-                  await productsService.archive(productSelected.id);
-                  Alert.alert('Sucesso', 'Produto arquivado com sucesso!');
-                  setStep('filter');
-                } catch (error) {
-                  Alert.alert('Erro', 'Não foi possível arquivar o produto.');
-                }
-              },
-            },
-          ]
-        );
+        const ok = await confirm({
+          title: 'Arquivar Produto',
+          message: 'Este produto possui vendas vinculadas e não pode ser excluído. Deseja arquivá-lo?',
+          confirmText: 'Arquivar',
+        });
+        if (!ok) return;
+        try {
+          await productsService.archive(productSelected.id);
+          toast.show('Produto arquivado com sucesso!', { type: 'success' });
+          setStep('filter');
+        } catch {
+          toast.show('Não foi possível arquivar o produto.', { type: 'error' });
+        }
       } else {
-        Alert.alert(
-          'Excluir Produto',
-          `Tem certeza que deseja excluir o produto ${productSelected.name}?`,
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Excluir', style: 'destructive', onPress: async () => {
-                try {
-                  await productsService.delete(productSelected.id);
-                  Alert.alert('Sucesso', 'Produto excluído com sucesso!');
-                  setStep('filter');
-                } catch (error) {
-                  Alert.alert('Erro', 'Não foi possível excluir o produto.');
-                }
-              },
-            },
-          ]
-        );
+        const ok = await confirm({
+          title: 'Excluir Produto',
+          message: `Tem certeza que deseja excluir o produto ${productSelected.name}?`,
+          confirmText: 'Excluir',
+          destructive: true,
+        });
+        if (!ok) return;
+        try {
+          await productsService.delete(productSelected.id);
+          toast.show('Produto excluído com sucesso!', { type: 'success' });
+          setStep('filter');
+        } catch {
+          toast.show('Não foi possível excluir o produto.', { type: 'error' });
+        }
       }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível verificar as vendas do produto.');
+    } catch {
+      toast.show('Não foi possível verificar as vendas do produto.', { type: 'error' });
     }
   };
 

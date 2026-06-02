@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { View, KeyboardAvoidingView, Platform } from "react-native";
-import { Button, Input } from "@/components";
+import { Button, Input, useToast } from "@/components";
 import { useState, useEffect } from "react";
 import { productsService } from "@/services/products.service";
 
@@ -30,6 +30,7 @@ interface dadosProductProps {
 }
 
 export default function CadastroProduct({ product, step, onCancelCadastrar, onCadastrar }: ProductProps) {
+  const toast = useToast();
   const [dadosProduct, setDadosProduct] = useState<dadosProductProps>(product || {});
 
   useEffect(() => {
@@ -44,14 +45,15 @@ export default function CadastroProduct({ product, step, onCancelCadastrar, onCa
   const onGravar = () => {
     const { name, price, stock } = dadosProduct;
     if (!name?.trim() || !String(price ?? '').trim() || !String(stock ?? '').trim()) {
-      return alert('Erro: Preencha todos os campos obrigatórios!');
+      toast.show('Preencha todos os campos obrigatórios!', { type: 'error' });
+      return;
     }
     const payload = { ...dadosProduct, price: parseFloat(String(price).replace(',', '.')) };
     if (step === 'edit') {
-      alert('Produto alterado com sucesso! ✅');
+      toast.show('Produto alterado com sucesso!', { type: 'success' });
       productsService.updated(payload as any);
     } else if (step === 'register') {
-      alert('Produto cadastrado com sucesso! ✅');
+      toast.show('Produto cadastrado com sucesso!', { type: 'success' });
       productsService.create(payload as any);
     }
     onCadastrar(payload);

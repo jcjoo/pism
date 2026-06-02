@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { View, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Modal, Text, FlatList } from "react-native";
-import { Button, Input, Select } from "@/components";
+import { Button, Input, Select, useToast } from "@/components";
 import { useState, useEffect } from "react";
 import { clientsService } from "@/services/clients.service";
 import { enderecoService, Estado, Municipio } from "@/services/endereco.service";
@@ -20,6 +20,7 @@ interface ClientProps {
 }
 
 export default function CadastroClient({ client, step, onCancelCadastrar, onCadastrar }: ClientProps) {
+  const toast = useToast();
   const [dadosClient, setDadosClient] = useState<ClientData>(client || {});
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'estado' | 'cidade' | null>(null);
@@ -39,7 +40,7 @@ export default function CadastroClient({ client, step, onCancelCadastrar, onCada
         }
       } catch (error) {
         console.error("Erro ao buscar estados:", error);
-        alert("Não foi possível carregar os estados.");
+        toast.show('Não foi possível carregar os estados.', { type: 'error' });
       }
     };
     fetchStates();
@@ -69,7 +70,7 @@ export default function CadastroClient({ client, step, onCancelCadastrar, onCada
           const data = await enderecoService.getMunicipiosByUF(estado.uf);
           setCities(data);
         } catch (error) {
-          alert("Não foi possível carregar as cidades.");
+          toast.show('Não foi possível carregar as cidades.', { type: 'error' });
         }
       };
       fetchCities();
@@ -84,22 +85,23 @@ export default function CadastroClient({ client, step, onCancelCadastrar, onCada
   const onGravar = async () => {
     const { name, email, phone, address, municipio_id } = dadosClient;
     if (!name?.trim() || !email?.trim() || !phone?.trim() || !address?.trim() || !municipio_id) {
-      return alert('Erro: Todos os campos são obrigatórios.');
+      toast.show('Todos os campos são obrigatórios.', { type: 'error' });
+      return;
     }
     try {
       const { city_name, state, municipio, ...payload } = dadosClient as any;
       if (step === 'edit') {
         await clientsService.updated(payload);
-        alert('Cliente alterado com sucesso! ✅');
+        toast.show('Cliente alterado com sucesso!', { type: 'success' });
         onCadastrar(dadosClient);
       } else if (step === 'register') {
         const newClientData = await clientsService.create(payload);
-        alert('Cliente cadastrado com sucesso! ✅');
+        toast.show('Cliente cadastrado com sucesso!', { type: 'success' });
         onCadastrar(newClientData);
       }
     } catch (error) {
       console.error("Erro ao gravar cliente:", error);
-      alert('Erro ao gravar Cliente! ❎❌');
+      toast.show('Erro ao gravar Cliente!', { type: 'error' });
     }
   };
 
@@ -177,7 +179,7 @@ export default function CadastroClient({ client, step, onCancelCadastrar, onCada
                 value={dadosClient.municipio?.nome || dadosClient.city_name || ''}
                 onPress={() => {
                   if (!dadosClient.state && !dadosClient.municipio?.uf) {
-                    return alert('Selecione um estado primeiro!');
+                    { toast.show('Selecione um estado primeiro!', { type: 'warning' }); return; }
                   }
                   setModalType('cidade');
                   setSearchTerm('');

@@ -1,16 +1,23 @@
-import { Feather } from "@expo/vector-icons";
 import { TouchableOpacity, Text, View } from "react-native";
 import { BottomTabHeaderProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Header({ options, route, navigation }: BottomTabHeaderProps) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   const title = options.headerTitle !== undefined
     ? options.headerTitle
     : options.title !== undefined
       ? options.title
       : route.name;
+
+  const meta = (user as any)?.user_metadata ?? {};
+  const fullName: string = meta.full_name ?? meta.name ?? user?.email ?? '';
+  const initials = fullName
+    .trim().split(' ').filter(Boolean).slice(0, 2)
+    .map((w: string) => w[0].toUpperCase()).join('') || '?';
 
   return (
     <View
@@ -23,8 +30,12 @@ export default function Header({ options, route, navigation }: BottomTabHeaderPr
       <TouchableOpacity
         onPress={() => navigation.navigate('Menu' as never)}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        style={{
+          width: 36, height: 36, borderRadius: 18,
+          backgroundColor: '#3C096C', alignItems: 'center', justifyContent: 'center',
+        }}
       >
-        <Feather name="menu" size={26} color="#3C096C" />
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{initials}</Text>
       </TouchableOpacity>
     </View>
   );

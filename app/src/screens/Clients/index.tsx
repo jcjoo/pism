@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import { Button } from '@/components';
+import { Button, useToast, useConfirm } from '@/components';
 import DetailsClient from './DetailsClient';
 import CadastroClient from './CadastroClient';
 
@@ -13,6 +13,8 @@ type Step = 'filter' | 'register' | 'details' | 'edit';
 
 export function Clients() {
   const navigation = useNavigation();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [clientList, setClientsList] = useState<Client[]>([]);
   const [archivedList, setArchivedList] = useState<Client[]>([]);
   const [clientSelected, setClientSelected] = useState<Client | null>(null);
@@ -46,7 +48,7 @@ export function Clients() {
   const handleUnarchive = async (id: string) => {
     try {
       await clientsService.unarchive(id);
-      Alert.alert('Sucesso', 'Cliente desarquivado!');
+      toast.show('Cliente desarquivado!', { type: 'success' });
       loadData();
     } catch (error) {
       console.error('Erro ao desarquivar:', error);
@@ -60,46 +62,37 @@ export function Clients() {
       const hasSales = await clientsService.hasSales(clientSelected.id);
 
       if (hasSales) {
-        Alert.alert(
-          'Arquivar Cliente',
-          'Este cliente possui vendas vinculadas e não pode ser excluído. Deseja arquivá-lo?',
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Arquivar', onPress: async () => {
-                try {
-                  await clientsService.archive(clientSelected.id);
-                  Alert.alert('Sucesso', 'Cliente arquivado com sucesso!');
-                  setStep('filter');
-                } catch (error) {
-                  Alert.alert('Erro', 'Não foi possível arquivar o cliente.');
-                }
-              },
-            },
-          ]
-        );
+        const ok = await confirm({
+          title: 'Arquivar Cliente',
+          message: 'Este cliente possui vendas vinculadas e não pode ser excluído. Deseja arquivá-lo?',
+          confirmText: 'Arquivar',
+        });
+        if (!ok) return;
+        try {
+          await clientsService.archive(clientSelected.id);
+          toast.show('Cliente arquivado com sucesso!', { type: 'success' });
+          setStep('filter');
+        } catch {
+          toast.show('Não foi possível arquivar o cliente.', { type: 'error' });
+        }
       } else {
-        Alert.alert(
-          'Excluir Cliente',
-          `Tem certeza que deseja excluir o cliente ${clientSelected.name}?`,
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Excluir', style: 'destructive', onPress: async () => {
-                try {
-                  await clientsService.delete(clientSelected.id);
-                  Alert.alert('Sucesso', 'Cliente excluído com sucesso!');
-                  setStep('filter');
-                } catch (error) {
-                  Alert.alert('Erro', 'Não foi possível excluir o cliente.');
-                }
-              },
-            },
-          ]
-        );
+        const ok = await confirm({
+          title: 'Excluir Cliente',
+          message: `Tem certeza que deseja excluir o cliente ${clientSelected.name}?`,
+          confirmText: 'Excluir',
+          destructive: true,
+        });
+        if (!ok) return;
+        try {
+          await clientsService.delete(clientSelected.id);
+          toast.show('Cliente excluído com sucesso!', { type: 'success' });
+          setStep('filter');
+        } catch {
+          toast.show('Não foi possível excluir o cliente.', { type: 'error' });
+        }
       }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível verificar as vendas do cliente.');
+    } catch {
+      toast.show('Não foi possível verificar as vendas do cliente.', { type: 'error' });
     }
   };
 

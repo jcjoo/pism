@@ -5,3 +5,5 @@ export * from './Sales';
 export * from './Clients';
 export * from './Products';
 export * from './Recebimentos';
+export * from './Conta';
+export * from './Relatorios';

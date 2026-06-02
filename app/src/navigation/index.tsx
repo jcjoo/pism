@@ -14,6 +14,8 @@ import {
   Products,
   Clients,
   Recebimentos,
+  Conta,
+  Relatorios,
 } from "../screens";
 import { useAuth } from "../hooks/useAuth";
 import Header from "./header";
@@ -93,7 +95,7 @@ function AppTabs() {
         name="NovaVenda"
         component={NewSale}
         options={{
-          headerTitle: "Cadastrar nova venda.",
+          headerTitle: "Nova Venda",
           tabBarIcon: ({ color, focused }) => <TabIcon name="shopping-bag" color={color} focused={focused} label="Nova Venda" />,
         }}
       />
@@ -125,6 +127,18 @@ function AppTabs() {
       <Tab.Screen
         name="Products"
         component={Products}
+        options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
+      />
+
+      <Tab.Screen
+        name="Conta"
+        component={Conta}
+        options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
+      />
+
+      <Tab.Screen
+        name="Relatorios"
+        component={Relatorios}
         options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
       />
     </Tab.Navigator>

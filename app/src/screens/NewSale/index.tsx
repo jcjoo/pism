@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity, Modal, FlatList } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Input, Button, QuantitySelector, Select } from '@/components';
+import { Input, Button, QuantitySelector, Select, useToast } from '@/components';
 import { useAuth } from '@/hooks/useAuth';
 
 import { clientsService, Client } from '@/services/clients.service';
@@ -11,6 +11,7 @@ import { salesService } from '@/services/sales.service';
 
 export function NewSale() {
   const { userId } = useAuth();
+  const toast = useToast();
   const [client, setClient] = useState<Client | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const [price, setPrice] = useState('');
@@ -88,8 +89,8 @@ export function NewSale() {
   };
 
   const handleRegisterSale = async () => {
-    if (!client) { alert('Por favor, selecione um Cliente primeiro!'); return; }
-    if (cart.length === 0) { alert('O carrinho está vazio!'); return; }
+    if (!client) { toast.show('Por favor, selecione um Cliente primeiro!', { type: 'warning' }); return; }
+    if (cart.length === 0) { toast.show('O carrinho está vazio!', { type: 'warning' }); return; }
     if (!dueDate) return;
 
     setLoading(true);
@@ -113,14 +114,14 @@ export function NewSale() {
         }))
       );
 
-      alert('Venda registrada com sucesso! ✅');
+      toast.show('Venda registrada com sucesso!', { type: 'success' });
       setClient(null);
       setCart([]);
       setPaymentMode('À vista');
       setObservation('');
       setDueDate(new Date());
     } catch (error: any) {
-      alert(`Erro: ${error.message}`);
+      toast.show(error.message, { type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -133,6 +134,7 @@ export function NewSale() {
     >
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}>
 
+        {/* Cliente e Produto */}
         <Select
           label="Cliente"
           value={client?.name || ''}
@@ -151,17 +153,18 @@ export function NewSale() {
           <>
             <View className="flex-row items-center my-1">
               <Input
-                placeholder="Valor (R$)"
+                label="Valor (R$)"
+                placeholder="0,00"
                 value={price}
                 onChangeText={setPrice}
                 className="flex-[1.2]"
                 keyboardType="decimal-pad"
               />
               <View className="w-2" />
-              <QuantitySelector label="Quantidade" value={quantity} onChange={setQuantity} />
+              <QuantitySelector label="Qtd." value={quantity} onChange={setQuantity} min={1} />
             </View>
 
-            <View className="flex-row items-center my-1">
+            <View className="flex-row items-center mb-1">
               <Button
                 title="Remover"
                 variant="primary"
@@ -174,42 +177,79 @@ export function NewSale() {
                 variant="primary-dark"
                 className="flex-1"
                 onPress={handleAddToCart}
+                icon={<Feather name="plus" size={16} color="#fff" />}
               />
             </View>
           </>
         )}
 
         {cart.length > 0 && (
-          <View className="mt-6 p-4 bg-light-dark rounded-lg">
-            {cart.map((item, idx) => (
-              <View key={idx} className="flex-row justify-between items-center mb-3">
-                <Text className="text-base text-primary-dark font-bold">
-                  {idx + 1}. {item.product.name} ({item.quantity}x) – {renderPrice(item.price * item.quantity)}
+          <View className="mt-4">
+            {/* Header do carrinho */}
+            <View className="flex-row items-center justify-between mb-2 px-1">
+              <Text className="text-base font-bold text-primary-dark">Carrinho</Text>
+              <View className="flex-row items-center gap-1">
+                <Feather name="shopping-bag" size={13} color="#5A189A" />
+                <Text className="text-xs font-semibold text-primary">
+                  {cart.length} item{cart.length !== 1 ? 's' : ''}
                 </Text>
-                <TouchableOpacity onPress={() => setCart(cart.filter((_, i) => i !== idx))}>
-                  <Text className="text-xs text-primary underline">Remover</Text>
-                </TouchableOpacity>
               </View>
-            ))}
+            </View>
 
-            <Text className="text-lg text-primary-dark font-bold mt-3 mb-2">
-              Total: {renderPrice(currentTotal)}
-            </Text>
+            <View className="p-4 bg-light-dark rounded-xl">
+              {cart.map((item, idx) => (
+                <View
+                  key={idx}
+                  className="flex-row items-center justify-between py-2.5"
+                  style={{ borderBottomWidth: idx < cart.length - 1 ? 1 : 0, borderBottomColor: '#E1DAE8' }}
+                >
+                  <View className="flex-1 mr-3">
+                    <Text className="text-sm font-bold text-primary-dark" numberOfLines={1}>
+                      {item.product.name}
+                    </Text>
+                    <Text className="text-xs text-primary mt-0.5">
+                      {item.quantity}x · {renderPrice(item.price)}/un
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <Text className="text-sm font-bold text-primary-dark">
+                      {renderPrice(item.price * item.quantity)}
+                    </Text>
+                    <TouchableOpacity onPress={() => setCart(cart.filter((_, i) => i !== idx))}>
+                      <Text className="text-[11px] text-danger mt-0.5">Remover</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
 
-            <View className="flex-row items-center mt-4">
+              {/* Total */}
+              <View className="flex-row justify-between items-center mt-3 pt-3" style={{ borderTopWidth: 2, borderTopColor: '#3C096C' }}>
+                <Text className="text-base font-bold text-primary-dark">Total</Text>
+                <Text className="text-xl font-bold text-primary-dark">{renderPrice(currentTotal)}</Text>
+              </View>
+            </View>
+
+            {/* Vencimento e Pagamento */}
+            <View className="flex-row items-center mt-1">
               <Select
-                label="Data vencimento"
+                label="Vencimento"
                 placeholder="Data vencimento"
                 value={dueDate ? dueDate.toLocaleDateString('pt-BR') : ''}
                 onPress={() => setShowDatePicker(true)}
                 className="flex-1"
               />
               <View className="w-2" />
-              <QuantitySelector label={paymentMode} value={1} min={0} onChange={switchPaymentMode} />
+              <QuantitySelector
+                label="Pagamento"
+                displayText={paymentMode}
+                value={1}
+                min={0}
+                onChange={switchPaymentMode}
+              />
             </View>
 
             <Input
-              placeholder="Observação..."
+              placeholder="Observação (opcional)..."
               value={observation}
               onChangeText={setObservation}
               multiline
@@ -225,11 +265,12 @@ export function NewSale() {
               />
               <View className="w-2" />
               <Button
-                title={loading ? 'Registrando...' : 'Registrar Venda'}
+                title={loading ? 'Registrando...' : '+Venda'}
                 variant="secondary"
                 className="flex-1"
                 onPress={handleRegisterSale}
                 disabled={loading}
+                icon={loading ? undefined : <Feather name="check" size={16} color="#0E0F0C" />}
               />
             </View>
           </View>

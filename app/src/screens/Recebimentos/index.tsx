@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-  Alert,
   Linking,
   RefreshControl,
   FlatList,
@@ -26,7 +25,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
-import { Button } from '@/components';
+import { Button, useToast } from '@/components';
 import { recebimentosService, PendingSale, SaleInstallment } from '@/services/recebimentos.service';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -234,6 +233,7 @@ function InstallmentModal({ sale, onClose, onConfirm, saving }: InstallmentModal
 type ManualFilter = 'all' | 'overdue' | 'today' | 'week';
 
 function RecebimentoManual() {
+  const toast = useToast();
   const [sales, setSales]        = useState<PendingSale[]>([]);
   const [loading, setLoading]    = useState(true);
   const [refreshing, setRefresh] = useState(false);
@@ -252,7 +252,7 @@ function RecebimentoManual() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try { setSales(await recebimentosService.getPending()); }
-    catch (e: any) { Alert.alert('Erro', e.message); }
+    catch (e: any) { toast.show(e.message, { type: 'error' }); }
     finally { setLoading(false); setRefresh(false); }
   }, []);
 
@@ -288,14 +288,14 @@ function RecebimentoManual() {
   const confirmCash = async () => {
     if (!selected) return;
     const num = parseFloat(amount.replace(',', '.'));
-    if (isNaN(num) || num <= 0) { Alert.alert('Valor inválido'); return; }
+    if (isNaN(num) || num <= 0) { toast.show('Valor inválido.', { type: 'error' }); return; }
     setSaving(true);
     try {
       await recebimentosService.markReceived(selected.id, num);
       setSales(p => p.filter(s => s.id !== selected.id));
       setSelected(null);
-      Alert.alert('Recebimento confirmado!', renderPrice(num) + ' registrado.');
-    } catch (e: any) { Alert.alert('Erro', e.message); }
+      toast.show(`${renderPrice(num)} registrado.`, { type: 'success' });
+    } catch (e: any) { toast.show(e.message, { type: 'error' }); }
     finally { setSaving(false); }
   };
 
@@ -324,11 +324,11 @@ function RecebimentoManual() {
       );
 
       setInstallSale(null);
-      Alert.alert(
-        'Recebimento confirmado!',
-        `${ids.length} parcela${ids.length > 1 ? 's' : ''} · ${renderPrice(receivedAmt)} registrado.`
+      toast.show(
+        `${ids.length} parcela${ids.length > 1 ? 's' : ''} · ${renderPrice(receivedAmt)} registrado.`,
+        { type: 'success' }
       );
-    } catch (e: any) { Alert.alert('Erro', e.message); }
+    } catch (e: any) { toast.show(e.message, { type: 'error' }); }
     finally { setInstallSaving(false); }
   };
 
@@ -1489,6 +1489,7 @@ function CompletionView({
 // ── RouteSwipeView ────────────────────────────────────────────────────────────
 
 function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; onBack: () => void }) {
+  const toast = useToast();
   const [remaining, setRemaining]  = useState(initialRoute);
   const [skipped,   setSkipped]    = useState<RouteStop[]>([]);
   const [received,  setReceived]   = useState(0);
@@ -1600,7 +1601,7 @@ function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; o
   const handleConfirmReceive = async () => {
     if (!current) return;
     const num = parseFloat(amountStr.replace(',', '.'));
-    if (isNaN(num) || num <= 0) { Alert.alert('Valor inválido'); return; }
+    if (isNaN(num) || num <= 0) { toast.show('Valor inválido.', { type: 'error' }); return; }
     setSaving(true);
     try {
       await recebimentosService.markReceived(current.sale.id, num);
@@ -1610,7 +1611,7 @@ function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; o
       setReceived(r => r + 1);
       setCollected(c => c + num);
     } catch (e: any) {
-      Alert.alert('Erro', e.message);
+      toast.show(e.message, { type: 'error' });
     } finally { setSaving(false); }
   };
 
@@ -1630,7 +1631,7 @@ function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; o
       setReceived(r => r + 1);
       setCollected(c => c + receivedAmt);
     } catch (e: any) {
-      Alert.alert('Erro', e.message);
+      toast.show(e.message, { type: 'error' });
     } finally { setInstallSaving(false); }
   };
 
@@ -1853,6 +1854,7 @@ function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; o
 // ── RotaRecebimento ───────────────────────────────────────────────────────────
 
 function RotaRecebimento() {
+  const toast = useToast();
   const [workHours,  setWorkHours]  = useState('8');
   const [avgStop,    setAvgStop]    = useState('15');
   const [targetDate, setTargetDate] = useState(new Date());
@@ -1867,19 +1869,19 @@ function RotaRecebimento() {
     const hours = parseFloat(workHours.replace(',', '.'));
     const mins  = parseFloat(avgStop.replace(',', '.'));
     if (isNaN(hours) || hours <= 0 || isNaN(mins) || mins <= 0) {
-      Alert.alert('Parâmetros inválidos', 'Preencha horas e tempo por parada.');
+      toast.show('Preencha horas e tempo por parada.', { type: 'warning' });
       return;
     }
     setLoading(true);
     try {
       const sales = await recebimentosService.getPending();
-      if (sales.length === 0) { Alert.alert('Tudo em dia!', 'Não há recebimentos pendentes.'); return; }
+      if (sales.length === 0) { toast.show('Não há recebimentos pendentes.', { type: 'info' }); setLoading(false); return; }
       const { route: r, excluded: ex } = buildRoute(sales, hours, mins, targetDate);
       setRoute(r);
       setExcluded(ex);
       setMode('swipe');
     } catch (e: any) {
-      Alert.alert('Erro', e.message);
+      toast.show(e.message, { type: 'error' });
     } finally {
       setLoading(false);
     }

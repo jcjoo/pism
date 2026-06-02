@@ -121,11 +121,11 @@
   /* ── Chips de filtro ────────────────────────────────────────────────────── */
 
   .filter-chip {
-    @apply px-3.5 py-1.5 rounded-full bg-light-dark;
+    @apply px-3.5 py-1.5 rounded-full bg-light-dark shrink-0;
   }
 
   .filter-chip-active {
-    @apply px-3.5 py-1.5 rounded-full bg-primary-dark;
+    @apply px-3.5 py-1.5 rounded-full bg-primary-dark shrink-0;
   }
 
   /* ── Botão de desarquivar ────────────────────────────────────────────────── */
