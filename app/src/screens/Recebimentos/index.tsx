@@ -25,6 +25,7 @@ import {
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Location from 'expo-location';
 import { Button } from '@/components';
 import { recebimentosService, PendingSale, SaleInstallment } from '@/services/recebimentos.service';
 
@@ -748,16 +749,132 @@ const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
 type GeoCoord = { lat: number; lng: number };
 
 async function geocodeAddress(address: string, city: string, uf: string): Promise<GeoCoord | null> {
-  const query = encodeURIComponent([address, city, uf, 'Brasil'].filter(Boolean).join(', '));
+  const q      = [address, city, uf, 'Brasil'].filter(Boolean).join(', ');
+  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  if (apiKey) {
+    // Google Geocoding API — no rate limit, much faster
+    try {
+      const res  = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&key=${apiKey}`
+      );
+      const data = await res.json();
+      if (data.status === 'OK' && data.results?.[0]) {
+        const loc = data.results[0].geometry.location;
+        return { lat: loc.lat, lng: loc.lng };
+      }
+    } catch {}
+    return null;
+  }
+
+  // Fallback: Nominatim (rate-limited to 1 req/s)
   try {
     const res  = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=br`,
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br`,
       { headers: { 'User-Agent': 'PISM-App/1.0' } }
     );
     const data = await res.json();
     if (data?.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   } catch {}
   return null;
+}
+
+function haversineKm(a: GeoCoord, b: GeoCoord): number {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const s = Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+function nearestNeighborSort(
+  stops: RouteStop[],
+  coords: Record<string, GeoCoord>,
+  start: GeoCoord,
+): RouteStop[] {
+  const withCoord    = stops.filter(s => coords[s.sale.id]);
+  const withoutCoord = stops.filter(s => !coords[s.sale.id]);
+  const pool = [...withCoord];
+  const sorted: RouteStop[] = [];
+  let cur = start;
+  while (pool.length > 0) {
+    let bi = 0, bd = Infinity;
+    pool.forEach((s, i) => {
+      const d = haversineKm(cur, coords[s.sale.id]);
+      if (d < bd) { bd = d; bi = i; }
+    });
+    sorted.push(pool[bi]);
+    cur = coords[pool[bi].sale.id];
+    pool.splice(bi, 1);
+  }
+  return [...sorted, ...withoutCoord];
+}
+
+function openDrivingNav(coord: GeoCoord | null, address: string, city: string) {
+  if (coord) {
+    const ll = `${coord.lat},${coord.lng}`;
+    const primary = Platform.OS === 'ios'
+      ? `comgooglemaps://?daddr=${ll}&directionsmode=driving`
+      : `google.navigation:q=${ll}&mode=d`;
+    Linking.openURL(primary).catch(() =>
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=driving`)
+    );
+  } else {
+    const q = encodeURIComponent([address, city, 'Brasil'].filter(Boolean).join(', '));
+    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving`);
+  }
+}
+
+async function requestDeviceLocation(): Promise<GeoCoord | null> {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return null;
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  } catch {
+    return null;
+  }
+}
+
+// Optimizes visiting order using Google Directions API waypoint optimization.
+// Falls back to nearest-neighbor heuristic if API is unavailable or fails.
+async function optimizeRouteOrder(
+  stops: RouteStop[],
+  coords: Record<string, GeoCoord>,
+  origin: GeoCoord,
+  apiKey: string,
+): Promise<RouteStop[]> {
+  const withCoord    = stops.filter(s => coords[s.sale.id]);
+  const withoutCoord = stops.filter(s => !coords[s.sale.id]);
+
+  if (withCoord.length < 2) return stops;
+
+  // Google Directions supports up to 23 intermediate waypoints (25 total with origin+dest)
+  const chunk = withCoord.slice(0, 23);
+  const tail  = withCoord.slice(23); // > 23 stays appended in priority order
+
+  const wpStr = chunk
+    .map(s => `${coords[s.sale.id].lat},${coords[s.sale.id].lng}`)
+    .join('|');
+
+  const url =
+    `https://maps.googleapis.com/maps/api/directions/json` +
+    `?origin=${origin.lat},${origin.lng}` +
+    `&destination=${origin.lat},${origin.lng}` +  // circular → optimizes all stops
+    `&waypoints=optimize:true|${wpStr}` +
+    `&mode=driving&language=pt-BR&key=${apiKey}`;
+
+  try {
+    const data = await fetch(url).then(r => r.json());
+    if (data.status !== 'OK' || !data.routes?.[0]?.waypoint_order) {
+      return [...nearestNeighborSort(stops, coords, origin)];
+    }
+    const order: number[] = data.routes[0].waypoint_order;
+    return [...order.map(i => chunk[i]), ...tail, ...withoutCoord];
+  } catch {
+    return nearestNeighborSort(stops, coords, origin);
+  }
 }
 
 // ── MapErrorBoundary ──────────────────────────────────────────────────────────
@@ -836,9 +953,10 @@ interface RouteMapProps {
   currentStopId: string;
   geocodedCoords: Record<string, GeoCoord>;
   onCoordsUpdate: (id: string, coord: GeoCoord) => void;
+  userLocation: GeoCoord | null;
 }
 
-function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: RouteMapProps) {
+function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate, userLocation }: RouteMapProps) {
   const [geocoding,    setGeocoding]    = useState(false);
   const [geocodingIdx, setGeocodingIdx] = useState(0);
   const [mapError,     setMapError]     = useState('');
@@ -872,9 +990,12 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
   };
 
   const fitMap = (extra: Record<string, GeoCoord> = {}) => {
-    const all    = { ...geocodedCoords, ...extra };
-    const coords = stops.map(s => all[s.sale.id]).filter((c): c is GeoCoord => !!c)
-      .map(c => ({ latitude: c.lat, longitude: c.lng }));
+    const all = { ...geocodedCoords, ...extra };
+    const coords = [
+      ...(userLocation ? [{ latitude: userLocation.lat, longitude: userLocation.lng }] : []),
+      ...stops.map(s => all[s.sale.id]).filter((c): c is GeoCoord => !!c)
+        .map(c => ({ latitude: c.lat, longitude: c.lng })),
+    ];
     if (coords.length > 0 && mapRef.current) {
       mapRef.current.fitToCoordinates(coords, {
         edgePadding: { top: 80, right: 60, bottom: 80, left: 60 }, animated: true,
@@ -882,8 +1003,11 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
     }
   };
 
-  const polyline = stops.map(s => geocodedCoords[s.sale.id]).filter((c): c is GeoCoord => !!c)
-    .map(c => ({ latitude: c.lat, longitude: c.lng }));
+  const polyline = [
+    ...(userLocation ? [{ latitude: userLocation.lat, longitude: userLocation.lng }] : []),
+    ...stops.map(s => geocodedCoords[s.sale.id]).filter((c): c is GeoCoord => !!c)
+      .map(c => ({ latitude: c.lat, longitude: c.lng })),
+  ];
 
   const geocodedCount = stops.filter(s => geocodedCoords[s.sale.id]).length;
   const total         = stops.length;
@@ -907,7 +1031,8 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
         style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
       >
         <Text className="text-[11px] text-white text-center">
-          {geocodedCount}/{total} endereços encontrados · rota em linha reta
+          {geocodedCount}/{total} endereços encontrados
+          {userLocation ? ' · rota a partir da sua localização' : ' · rota em linha reta'}
         </Text>
       </View>
 
@@ -922,7 +1047,21 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
           toolbarEnabled={false}
         >
           {polyline.length > 1 && (
-            <Polyline coordinates={polyline} strokeColor="#3C096C" strokeWidth={2} lineDashPattern={[10, 6]} />
+            <Polyline coordinates={polyline} strokeColor="#3C096C" strokeWidth={3} lineDashPattern={[10, 6]} />
+          )}
+          {userLocation && (
+            <Marker
+              coordinate={{ latitude: userLocation.lat, longitude: userLocation.lng }}
+              title="Você está aqui"
+              anchor={{ x: 0.5, y: 0.5 }}
+            >
+              <View style={{
+                width: 20, height: 20, borderRadius: 10,
+                backgroundColor: '#4285F4', borderWidth: 3, borderColor: '#fff',
+                elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.35, shadowRadius: 3,
+              }} />
+            </Marker>
           )}
           {stops.map((stop, idx) => {
             const coord  = geocodedCoords[stop.sale.id];
@@ -959,6 +1098,344 @@ function RouteMap({ stops, currentStopId, geocodedCoords, onCoordsUpdate }: Rout
           })}
         </MapView>
       </MapErrorBoundary>
+    </View>
+  );
+}
+
+// ── InAppNav helpers ─────────────────────────────────────────────────────────
+
+type NavLatLng = { latitude: number; longitude: number };
+
+interface NavStep {
+  instruction: string;
+  maneuver:    string;
+  distText:    string;
+  distM:       number;
+  endLat:      number;
+  endLng:      number;
+}
+
+function decodePolyline(enc: string): NavLatLng[] {
+  const pts: NavLatLng[] = [];
+  let i = 0, lat = 0, lng = 0;
+  while (i < enc.length) {
+    let b, shift = 0, result = 0;
+    do { b = enc.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+    shift = 0; result = 0;
+    do { b = enc.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
+    pts.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+  }
+  return pts;
+}
+
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function metersBetween(a: NavLatLng, b: NavLatLng): number {
+  const R = 6371000;
+  const dLat = (b.latitude  - a.latitude)  * Math.PI / 180;
+  const dLng = (b.longitude - a.longitude) * Math.PI / 180;
+  const s = Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.latitude * Math.PI / 180) * Math.cos(b.latitude * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+const MANEUVER_ICONS: Record<string, string> = {
+  'turn-left':         'corner-up-left',
+  'turn-right':        'corner-up-right',
+  'turn-slight-left':  'corner-up-left',
+  'turn-slight-right': 'corner-up-right',
+  'turn-sharp-left':   'corner-up-left',
+  'turn-sharp-right':  'corner-up-right',
+  'uturn-left':        'rotate-ccw',
+  'uturn-right':       'rotate-cw',
+  'roundabout-left':   'rotate-ccw',
+  'roundabout-right':  'rotate-cw',
+  'straight':          'arrow-up',
+  'merge':             'git-merge',
+  'fork-left':         'corner-up-left',
+  'fork-right':        'corner-up-right',
+  'ferry':             'anchor',
+};
+
+// ── InAppNav ──────────────────────────────────────────────────────────────────
+
+interface InAppNavProps {
+  destination:     GeoCoord | null;
+  destAddress:     string;
+  destCity:        string;
+  destName:        string;
+  onArrive:        () => void;
+  onClose:         () => void;
+}
+
+function InAppNav({ destination, destAddress, destCity, destName, onArrive, onClose }: InAppNavProps) {
+  const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+  const mapRef  = useRef<MapView>(null);
+
+  const [loading,   setLoading]   = useState(true);
+  const [routePts,  setRoutePts]  = useState<NavLatLng[]>([]);
+  const [stepIdx,   setStepIdx]   = useState(0);
+  const [totalDist, setTotalDist] = useState('');
+  const [totalTime, setTotalTime] = useState('');
+  const [arrived,   setArrived]   = useState(false);
+  const [userPos,   setUserPos]   = useState<NavLatLng | null>(null);
+  const [noRoute,   setNoRoute]   = useState(false);
+
+  const stepsRef    = useRef<NavStep[]>([]);
+  const stepIdxRef  = useRef(0);
+  const locSubRef   = useRef<Location.LocationSubscription | null>(null);
+  const lastCalcRef = useRef<NavLatLng | null>(null);
+  const arrivedRef  = useRef(false);
+
+  const destLL: NavLatLng | null = destination
+    ? { latitude: destination.lat, longitude: destination.lng }
+    : null;
+
+  const destParam = destination
+    ? `${destination.lat},${destination.lng}`
+    : encodeURIComponent([destAddress, destCity, 'Brasil'].filter(Boolean).join(', '));
+
+  const calcRoute = useCallback(async (from: NavLatLng) => {
+    if (!API_KEY) return;
+    try {
+      const url = `https://maps.googleapis.com/maps/api/directions/json` +
+        `?origin=${from.latitude},${from.longitude}` +
+        `&destination=${destParam}` +
+        `&mode=driving&language=pt-BR&key=${API_KEY}`;
+      const data = await fetch(url).then(r => r.json());
+      if (data.status !== 'OK' || !data.routes?.[0]) { setNoRoute(true); return; }
+      const leg   = data.routes[0].legs[0];
+      const pts   = decodePolyline(data.routes[0].overview_polyline.points);
+      const steps: NavStep[] = leg.steps.map((s: any) => ({
+        instruction: stripHtml(s.html_instructions),
+        maneuver:    s.maneuver || 'straight',
+        distText:    s.distance.text,
+        distM:       s.distance.value,
+        endLat:      s.end_location.lat,
+        endLng:      s.end_location.lng,
+      }));
+      stepsRef.current  = steps;
+      stepIdxRef.current = 0;
+      lastCalcRef.current = from;
+      setRoutePts(pts);
+      setStepIdx(0);
+      setTotalDist(leg.distance.text);
+      setTotalTime(leg.duration.text);
+      setNoRoute(false);
+    } catch { setNoRoute(true); }
+  }, [destParam, API_KEY]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted' || cancelled) { setLoading(false); return; }
+
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const cur: NavLatLng = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+      if (cancelled) return;
+
+      setUserPos(cur);
+      setLoading(false);
+      await calcRoute(cur);
+
+      // Brief overview of full route, then switch to driver view
+      const fitCoords = [cur, ...(destLL ? [destLL] : [])];
+      mapRef.current?.fitToCoordinates(fitCoords, {
+        edgePadding: { top: 160, right: 40, bottom: 240, left: 40 }, animated: true,
+      });
+      setTimeout(() => {
+        if (!cancelled) {
+          mapRef.current?.animateCamera(
+            { center: cur, pitch: 65, heading: 0, zoom: 18, altitude: 200 },
+            { duration: 1200 },
+          );
+        }
+      }, 1800);
+
+      locSubRef.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, distanceInterval: 8 },
+        (loc) => {
+          if (cancelled || arrivedRef.current) return;
+          const ll: NavLatLng = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+          setUserPos(ll);
+
+          // Arrival check (≤ 30 m from destination)
+          if (destLL && metersBetween(ll, destLL) < 30) {
+            arrivedRef.current = true;
+            setArrived(true);
+            locSubRef.current?.remove();
+            return;
+          }
+
+          // Advance step when within 20 m of its end point
+          const step = stepsRef.current[stepIdxRef.current];
+          if (step && stepIdxRef.current < stepsRef.current.length - 1) {
+            const toEnd = metersBetween(ll, { latitude: step.endLat, longitude: step.endLng });
+            if (toEnd < 20) {
+              stepIdxRef.current++;
+              setStepIdx(stepIdxRef.current);
+            }
+          }
+
+          // Recalculate when user moves > 100 m from last calc origin
+          if (lastCalcRef.current && metersBetween(ll, lastCalcRef.current) > 100) {
+            calcRoute(ll);
+          }
+
+          // Driver view: follow user with tilt + heading from GPS
+          const bearing = (loc.coords.heading != null && loc.coords.heading >= 0)
+            ? loc.coords.heading
+            : 0;
+          mapRef.current?.animateCamera(
+            { center: ll, pitch: 65, heading: bearing, zoom: 18, altitude: 200 },
+            { duration: 400 },
+          );
+        },
+      );
+    })();
+
+    return () => { cancelled = true; locSubRef.current?.remove(); };
+  }, []);
+
+  const step        = stepsRef.current[stepIdx];
+  const maneuverKey = step?.maneuver ?? 'straight';
+  const icon        = (MANEUVER_ICONS[maneuverKey] ?? 'navigation') as any;
+
+  if (!API_KEY) return (
+    <View className="flex-1 items-center justify-center p-6 bg-light">
+      <Feather name="alert-circle" size={40} color="#5A189A" />
+      <Text className="text-base font-bold text-primary-dark text-center mt-4 mb-1">
+        Chave da API do Google Maps não configurada
+      </Text>
+      <Text className="text-[12px] text-primary text-center mb-6">
+        Configure EXPO_PUBLIC_GOOGLE_MAPS_API_KEY para usar a navegação.
+      </Text>
+      <Button title="Fechar" variant="primary-dark" onPress={onClose} className="w-full" />
+    </View>
+  );
+
+  if (loading) return (
+    <View className="flex-1 items-center justify-center bg-light">
+      <ActivityIndicator size="large" color="#3C096C" />
+      <Text className="text-sm text-primary mt-3 font-medium">Calculando rota...</Text>
+    </View>
+  );
+
+  return (
+    <View className="flex-1">
+      {/* Instruction banner */}
+      <View style={{ backgroundColor: arrived ? '#1B8A3D' : '#3C096C', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 }}>
+        <View className="flex-row items-center gap-3">
+          <View style={{
+            width: 44, height: 44, borderRadius: 22,
+            backgroundColor: 'rgba(255,255,255,0.15)',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Feather name={arrived ? 'check-circle' : icon} size={24} color="#fff" />
+          </View>
+          <View className="flex-1">
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15, lineHeight: 20 }} numberOfLines={2}>
+              {arrived ? `Você chegou em ${destName}!` : (step?.instruction ?? 'Siga em frente')}
+            </Text>
+            {step && !arrived && (
+              <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 2 }}>
+                {step.distText}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={onClose}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Feather name="x" size={22} color="rgba(255,255,255,0.65)" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Map */}
+      <View className="flex-1">
+        <MapView
+          ref={mapRef}
+          style={{ flex: 1 }}
+          provider={PROVIDER_GOOGLE}
+          showsUserLocation
+          showsMyLocationButton={false}
+          showsCompass={false}
+          showsTraffic
+          pitchEnabled
+          rotateEnabled
+        >
+          {routePts.length > 1 && (
+            <Polyline
+              coordinates={routePts}
+              strokeColor="#3C096C"
+              strokeWidth={5}
+              lineCap="round"
+              lineJoin="round"
+            />
+          )}
+          {destLL && (
+            <Marker coordinate={destLL} title={destName} anchor={{ x: 0.5, y: 1 }}>
+              <View style={{
+                width: 38, height: 38, borderRadius: 19,
+                backgroundColor: '#DF1515',
+                alignItems: 'center', justifyContent: 'center',
+                borderWidth: 3, borderColor: '#fff',
+                elevation: 5, shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4,
+              }}>
+                <Feather name="map-pin" size={18} color="#fff" />
+              </View>
+            </Marker>
+          )}
+        </MapView>
+
+        {noRoute && (
+          <View style={{
+            position: 'absolute', bottom: 8, left: 12, right: 12,
+            backgroundColor: 'rgba(223,21,21,0.88)', borderRadius: 10,
+            padding: 10, alignItems: 'center',
+          }}>
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+              Não foi possível calcular a rota. Verifique sua conexão.
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Bottom bar */}
+      <View className="bg-white border-t border-light-dark px-5 pt-3 pb-4">
+        {(totalDist || totalTime) ? (
+          <View className="flex-row justify-around mb-3">
+            <View className="flex-row items-center gap-1.5">
+              <Feather name="navigation" size={14} color="#5A189A" />
+              <Text className="text-sm font-bold text-primary-dark">{totalDist}</Text>
+            </View>
+            <View className="w-px bg-light-dark" />
+            <View className="flex-row items-center gap-1.5">
+              <Feather name="clock" size={14} color="#5A189A" />
+              <Text className="text-sm font-bold text-primary-dark">{totalTime}</Text>
+            </View>
+            <View className="w-px bg-light-dark" />
+            <Text className="text-[12px] text-primary font-medium flex-1 ml-2" numberOfLines={1}>
+              {destName}
+            </Text>
+          </View>
+        ) : null}
+        <Button
+          title={arrived ? 'Confirmar chegada' : 'Cheguei ao destino'}
+          variant={arrived ? 'secondary' : 'primary-dark'}
+          onPress={onArrive}
+          icon={<Feather name="check" size={16} color={arrived ? '#0E0F0C' : '#fff'} />}
+        />
+      </View>
     </View>
   );
 }
@@ -1026,18 +1503,88 @@ function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; o
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [installSaving,    setInstallSaving]    = useState(false);
 
-  const [showMap,        setShowMap]        = useState(false);
+  type ViewMode = 'nav' | 'cards' | 'map';
+  const [viewMode,       setViewMode]       = useState<ViewMode>('nav');
   const [geocodedCoords, setGeocodedCoords] = useState<Record<string, GeoCoord>>({});
-  const cardRef = useRef<SwipeCardHandle>(null);
+  const [userLocation,   setUserLocation]   = useState<GeoCoord | null>(null);
+  const cardRef     = useRef<SwipeCardHandle>(null);
+  const geocodedRef = useRef<Record<string, GeoCoord>>({});
+  const sortedRef   = useRef(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const [geocodingCount, setGeocodingCount] = useState(0);
 
   const handleCoordsUpdate = useCallback((id: string, coord: GeoCoord) => {
+    geocodedRef.current = { ...geocodedRef.current, [id]: coord };
     setGeocodedCoords(prev => ({ ...prev, [id]: coord }));
   }, []);
 
+  // Geocode ALL stops immediately on mount, independent of RouteMap visibility.
+  // With Google API key: parallel (instant). Without: sequential with Nominatim rate-limit.
+  useEffect(() => {
+    const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+    let cancelled = false;
+
+    const geocodeOne = async (stop: RouteStop) => {
+      if (geocodedRef.current[stop.sale.id]) return; // already done
+      const coord = await geocodeAddress(
+        stop.sale.clients?.address ?? '',
+        stop.city,
+        stop.sale.clients?.municipio?.uf ?? '',
+      );
+      if (coord && !cancelled) {
+        handleCoordsUpdate(stop.sale.id, coord);
+        setGeocodingCount(c => c + 1);
+      }
+    };
+
+    if (apiKey) {
+      // Google Geocoding: fire all requests in parallel
+      Promise.all(initialRoute.map(geocodeOne));
+    } else {
+      // Nominatim: one per second
+      (async () => {
+        for (let i = 0; i < initialRoute.length; i++) {
+          if (cancelled) break;
+          await geocodeOne(initialRoute[i]);
+          if (i < initialRoute.length - 1) await new Promise(r => setTimeout(r, 1200));
+        }
+      })();
+    }
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // Get device location on mount
+  useEffect(() => {
+    requestDeviceLocation().then(setUserLocation);
+  }, []);
+
+  // Once all stops are geocoded + location is ready: optimize with Google Directions
+  useEffect(() => {
+    if (sortedRef.current) return;
+    if (!userLocation) return;
+    if (remaining.length < initialRoute.length) return; // user already started swiping
+    const allGeocoded = initialRoute.every(s => geocodedRef.current[s.sale.id]);
+    if (!allGeocoded) return;
+    sortedRef.current = true;
+
+    const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+    setOptimizing(true);
+    optimizeRouteOrder(initialRoute, geocodedRef.current, userLocation, apiKey)
+      .then(sorted => setRemaining(sorted))
+      .finally(() => setOptimizing(false));
+  }, [geocodingCount, userLocation]);
+
   const current  = remaining[0];
   const nextStop = remaining[1];
-  const isDone   = remaining.length === 0;
-  const total    = initialRoute.length;
+
+  // Auto-switch to navigation mode whenever the current stop changes
+  useEffect(() => {
+    if (current) setViewMode('nav');
+  }, [current?.sale.id]);
+
+  const isDone = remaining.length === 0;
+  const total  = initialRoute.length;
 
   const handleRequestReceive = () => {
     if (!current) return;
@@ -1089,11 +1636,6 @@ function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; o
 
   const handleSkip       = () => { setSkipped(p => [...p, remaining[0]]); setRemaining(p => p.slice(1)); };
   const handlePularPress = () => { cardRef.current?.animateOut('left').then(handleSkip); };
-  const openMaps         = () => {
-    if (!current) return;
-    const addr = encodeURIComponent([current.sale.clients?.address, current.city].filter(Boolean).join(', '));
-    Linking.openURL(`https://maps.google.com/maps?q=${addr}`);
-  };
 
   if (isDone) {
     return <CompletionView received={received} totalCollected={collected} skipped={skipped} onBack={onBack} />;
@@ -1101,37 +1643,104 @@ function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; o
 
   const progress = received / total;
 
+  // Navigation mode: full-screen InAppNav
+  if (viewMode === 'nav') {
+    const coord = geocodedRef.current[current.sale.id] ?? null;
+    return (
+      <View className="flex-1">
+        {/* Mini progress bar at top */}
+        <View className="bg-white border-b border-light-dark">
+          <View className="flex-row items-center px-4 py-2">
+            <TouchableOpacity onPress={onBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Feather name="arrow-left" size={18} color="#3C096C" />
+            </TouchableOpacity>
+            <View className="flex-1 mx-3">
+              <View className="h-1.5 bg-light-dark rounded-full">
+                <View className="h-1.5 bg-secondary-dark rounded-full" style={{ width: `${(received / total) * 100}%` as any }} />
+              </View>
+            </View>
+            <Text className="text-[11px] font-bold text-primary-dark">{received}/{total}</Text>
+            <TouchableOpacity
+              className="ml-3 flex-row items-center gap-1 bg-light-dark px-2.5 py-1 rounded-full"
+              onPress={() => setViewMode('cards')}
+            >
+              <Feather name="layers" size={12} color="#3C096C" />
+              <Text style={{ fontSize: 10, fontWeight: '700', color: '#3C096C' }}>Cards</Text>
+            </TouchableOpacity>
+          </View>
+          {(optimizing || geocodingCount < initialRoute.length) && !sortedRef.current && (
+            <View className="flex-row items-center gap-2 bg-primary-dark/10 px-4 py-1.5">
+              <ActivityIndicator size="small" color="#3C096C" />
+              <Text className="text-[11px] text-primary-dark font-semibold">
+                {optimizing
+                  ? 'Otimizando rota com Google Maps...'
+                  : `Localizando endereços... ${geocodingCount}/${initialRoute.length}`}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <InAppNav
+          key={current.sale.id}
+          destination={coord}
+          destAddress={current.sale.clients?.address ?? ''}
+          destCity={current.city}
+          destName={current.sale.clients?.name ?? 'Destino'}
+          onArrive={() => {
+            setViewMode('cards');
+            handleRequestReceive();
+          }}
+          onClose={() => setViewMode('cards')}
+        />
+      </View>
+    );
+  }
+
   return (
     <View className="screen pb-[100px]">
       {/* Progress header */}
-      <View className="flex-row items-center px-4 py-3 bg-white border-b border-light-dark">
-        <TouchableOpacity onPress={onBack} className="p-1">
-          <Feather name="arrow-left" size={20} color="#3C096C" />
-        </TouchableOpacity>
+      <View className="bg-white border-b border-light-dark">
+        <View className="flex-row items-center px-4 py-3">
+          <TouchableOpacity onPress={onBack} className="p-1">
+            <Feather name="arrow-left" size={20} color="#3C096C" />
+          </TouchableOpacity>
 
-        <View className="flex-1 mx-3">
-          <Text className="text-[11px] text-primary font-semibold mb-1.5">
-            {received} de {total} recebimentos · {renderPrice(collected)}
-          </Text>
-          <View className="h-1 bg-light-dark rounded-sm">
-            <View
-              className="h-1 bg-secondary-dark rounded-sm"
-              style={{ width: `${progress * 100}%` as any }}
-            />
+          <View className="flex-1 mx-3">
+            <Text className="text-[11px] text-primary font-semibold mb-1.5">
+              {received} de {total} recebimentos · {renderPrice(collected)}
+            </Text>
+            <View className="h-1 bg-light-dark rounded-sm">
+              <View
+                className="h-1 bg-secondary-dark rounded-sm"
+                style={{ width: `${progress * 100}%` as any }}
+              />
+            </View>
           </View>
+
+          <Text className="text-[11px] font-bold text-primary-dark">{remaining.length} rest.</Text>
         </View>
 
-        <Text className="text-[11px] font-bold text-primary-dark">{remaining.length} rest.</Text>
+        {(optimizing || geocodingCount < initialRoute.length) && !sortedRef.current && (
+          <View className="flex-row items-center gap-2 bg-primary-dark/10 px-4 py-2">
+            <ActivityIndicator size="small" color="#3C096C" />
+            <Text className="text-[11px] text-primary-dark font-semibold">
+              {optimizing
+                ? 'Otimizando rota com Google Maps...'
+                : `Localizando endereços... ${geocodingCount}/${initialRoute.length}`}
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* Card stack OR map */}
-      {showMap ? (
+      {/* Cards OR overview map */}
+      {viewMode === 'map' ? (
         <View className="flex-1 mx-4 my-3 relative">
           <RouteMap
             stops={initialRoute}
             currentStopId={current.sale.id}
             geocodedCoords={geocodedCoords}
             onCoordsUpdate={handleCoordsUpdate}
+            userLocation={userLocation}
           />
         </View>
       ) : (
@@ -1157,39 +1766,51 @@ function RouteSwipeView({ initialRoute, onBack }: { initialRoute: RouteStop[]; o
       )}
 
       {/* Action buttons */}
-      <View className="flex-row justify-between items-center px-8 py-3 bg-white border-t border-light-dark">
-        <TouchableOpacity
-          className="items-center justify-center w-[72px] h-[72px] rounded-full bg-[#FFF0F0] border-2 border-danger gap-0.5"
-          style={showMap ? { opacity: 0.4 } : undefined}
-          onPress={showMap ? undefined : handlePularPress}
-        >
-          <Feather name="x" size={26} color="#DF1515" />
-          <Text className="text-[10px] font-bold text-danger text-center">Pular</Text>
-        </TouchableOpacity>
+      <View className="bg-white border-t border-light-dark pb-1">
+        <View className="flex-row justify-between items-center px-8 pt-3 pb-1">
+          <TouchableOpacity
+            className="items-center justify-center w-[68px] h-[68px] rounded-full bg-[#FFF0F0] border-2 border-danger gap-0.5"
+            style={viewMode === 'map' ? { opacity: 0.35 } : undefined}
+            onPress={viewMode === 'map' ? undefined : handlePularPress}
+          >
+            <Feather name="x" size={26} color="#DF1515" />
+            <Text className="text-[10px] font-bold text-danger text-center">Pular</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          className="w-[52px] h-[52px] rounded-full items-center justify-center border"
-          style={{ backgroundColor: showMap ? '#3C096C' : '#E1DAE8', borderColor: '#8B5A9640' }}
-          onPress={() => setShowMap(v => !v)}
-        >
-          <Feather name={showMap ? 'layers' : 'map'} size={22} color={showMap ? '#fff' : '#3C096C'} />
-        </TouchableOpacity>
+          <View className="items-center gap-2">
+            <TouchableOpacity
+              className="w-[46px] h-[46px] rounded-full items-center justify-center border"
+              style={{ backgroundColor: viewMode === 'map' ? '#3C096C' : '#E1DAE8', borderColor: '#8B5A9640' }}
+              onPress={() => setViewMode(v => v === 'map' ? 'cards' : 'map')}
+            >
+              <Feather name={viewMode === 'map' ? 'layers' : 'map'} size={20} color={viewMode === 'map' ? '#fff' : '#3C096C'} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center gap-1 px-3 py-1.5 rounded-full"
+              style={{ backgroundColor: '#3C096C' }}
+              onPress={() => setViewMode('nav')}
+            >
+              <Feather name="navigation" size={12} color="#C4D680" />
+              <Text style={{ fontSize: 10, fontWeight: '700', color: '#C4D680' }}>GPS</Text>
+            </TouchableOpacity>
+          </View>
 
-        <TouchableOpacity
-          className="items-center justify-center w-[72px] h-[72px] rounded-full bg-secondary-dark gap-0.5"
-          style={showMap ? { opacity: 0.4 } : undefined}
-          onPress={showMap ? undefined : handleRequestReceive}
-        >
-          <Feather name="check" size={26} color="#fff" />
-          <Text className="text-[10px] font-bold text-white text-center">Recebido</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className="items-center justify-center w-[68px] h-[68px] rounded-full bg-secondary-dark gap-0.5"
+            style={viewMode === 'map' ? { opacity: 0.35 } : undefined}
+            onPress={viewMode === 'map' ? undefined : handleRequestReceive}
+          >
+            <Feather name="check" size={26} color="#fff" />
+            <Text className="text-[10px] font-bold text-white text-center">Recebido</Text>
+          </TouchableOpacity>
+        </View>
+
+        {viewMode === 'cards' && (
+          <Text className="text-[10px] text-primary-light text-center pb-1">
+            ← pular · toque GPS para navegar · recebido →
+          </Text>
+        )}
       </View>
-
-      {!showMap && (
-        <Text className="text-[10px] text-primary-light text-center pb-2 bg-white">
-          ← arraste para pular · recebido para direita →
-        </Text>
-      )}
 
       {/* À vista confirm modal */}
       <Modal visible={showConfirm} transparent animationType="slide">

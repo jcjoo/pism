@@ -11,11 +11,11 @@
   }
 
   .screen-padded {
-    @apply flex-1 bg-light px-6 pt-5;
+    @apply flex-1 bg-light px-5 pt-5 pb-6;
   }
 
   .page-header {
-    @apply flex-row items-center px-5 pt-[60px] pb-5 bg-light;
+    @apply flex-row items-center px-5 pt-[60px] pb-4 bg-light;
   }
 
   /* ── Tipografia ─────────────────────────────────────────────────────────── */

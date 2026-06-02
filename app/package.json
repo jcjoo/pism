@@ -20,6 +20,7 @@
     "expo": "^55.0.15",
     "expo-constants": "~55.0.14",
     "expo-linking": "~55.0.13",
+    "expo-location": "~55.1.10",
     "expo-router": "~55.0.12",
     "expo-status-bar": "~55.0.5",
     "https-proxy-agent": "7.0.5",

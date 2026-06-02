@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { View, Text } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   Auth,
@@ -18,36 +19,33 @@ import { useAuth } from "../hooks/useAuth";
 import Header from "./header";
 import Menu from "./menu";
 
-const TAB_BAR_STYLE = {
-  position: "absolute" as const,
-  bottom: 24, left: 20, right: 20,
-  backgroundColor: "#E1DAE8",
-  borderRadius: 20, height: 70,
-  borderTopWidth: 0, elevation: 8,
-  shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.1, shadowRadius: 10,
-  paddingBottom: 0, borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
-  flexDirection: "row" as const, justifyContent: "center" as const,
-};
-
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function TabIcon({ name, color, focused, label }: { name: any; color: string; focused: boolean; label: string }) {
   return (
-    <View style={{ alignItems: "center", justifyContent: "center", width: 60, paddingTop: 10 }}>
-      <Feather name={name} size={20} color={color} />
-      {focused && (
-        <Text style={{ fontSize: 10, fontWeight: "bold", color: "#3C096C", marginTop: 4, textAlign: "center", width: 80 }} numberOfLines={1}>
-          {label}
-        </Text>
-      )}
+    <View style={{ alignItems: "center", justifyContent: "center", width: 72, paddingTop: 4 }}>
+      <View style={{
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: focused ? "rgba(60, 9, 108, 0.1)" : "transparent",
+        borderRadius: 12,
+        width: 52,
+        height: 32,
+      }}>
+        <Feather name={name} size={22} color={color} />
+      </View>
+      <Text style={{ fontSize: 10, color, fontWeight: focused ? "700" : "400", marginTop: 2, textAlign: "center" }} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
 
 function AppTabs() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+
   const displayName = (() => {
     const meta = (user as any)?.user_metadata;
     if (meta?.full_name) return meta.full_name.split(' ')[0];
@@ -56,14 +54,28 @@ function AppTabs() {
     return 'você';
   })();
 
+  const tabBarStyle = {
+    backgroundColor: "#E1DAE8",
+    borderTopWidth: 1,
+    borderTopColor: "#D5CBE0",
+    height: 60 + insets.bottom,
+    paddingBottom: insets.bottom,
+    paddingTop: 0,
+    elevation: 8,
+    shadowColor: "#3C096C",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  };
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: true,
         header: (props) => <Header {...props} />,
-        tabBarStyle: TAB_BAR_STYLE,
+        tabBarStyle,
         tabBarActiveTintColor: "#3C096C",
-        tabBarInactiveTintColor: "#5A189A",
+        tabBarInactiveTintColor: "#9B8AAA",
         tabBarShowLabel: false,
         tabBarHideOnKeyboard: true,
       }}
