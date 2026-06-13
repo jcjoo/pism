@@ -53,8 +53,31 @@ export const enderecoService = {
       .select('*')
       .eq('id', id)
       .single();
-    
     if (error) throw error;
     return data;
+  },
+
+  async createMunicipio(nome: string, estadoId: number, uf: string): Promise<Municipio> {
+    const { data: maxRow } = await supabase
+      .from('municipio')
+      .select('codigo')
+      .lt('codigo', 0)
+      .order('codigo', { ascending: true })
+      .limit(1)
+      .single();
+    const nextCodigo = maxRow ? maxRow.codigo - 1 : -1;
+
+    const { data, error } = await supabase
+      .from('municipio')
+      .insert({ nome, uf, codigo: nextCodigo, estado_id: estadoId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteMunicipio(id: number): Promise<void> {
+    const { error } = await supabase.from('municipio').delete().eq('id', id);
+    if (error) throw error;
   },
 };

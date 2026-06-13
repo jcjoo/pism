@@ -1,22 +1,27 @@
 import { supabase } from './supabase';
+import { storageService, STORAGE_KEYS } from './storage.service';
 import { Tables, TablesInsert, TablesUpdate } from '../types/database.types';
 
 export type Product = Tables<'products'>;
 
 export const productsService = {
   async getAll(includeArchived = false) {
-    let query = supabase
-      .from('products')
-      .select('*')
-      .order('name');
-
-    if (!includeArchived) {
-      query = query.eq('is_archived', false);
+    try {
+      let query = supabase.from('products').select('*').order('name');
+      if (!includeArchived) query = query.eq('is_archived', false);
+      const { data, error } = await query;
+      if (error) throw error;
+      if (!includeArchived) {
+        await storageService.setItem(STORAGE_KEYS.PRODUCTS, data);
+      }
+      return data;
+    } catch {
+      if (!includeArchived) {
+        const cached = await storageService.getItem(STORAGE_KEYS.PRODUCTS);
+        if (cached) return cached as Product[];
+      }
+      throw new Error('Sem conexão e sem dados em cache');
     }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
   },
 
   async getById(id: string) {
@@ -25,7 +30,6 @@ export const productsService = {
       .select('*')
       .eq('id', id)
       .single();
-
     if (error) throw error;
     return data;
   },
@@ -35,7 +39,6 @@ export const productsService = {
       .from('sale_items')
       .select('*', { count: 'exact', head: true })
       .eq('product_id', id);
-    
     if (error) throw error;
     return (count || 0) > 0;
   },
@@ -45,7 +48,6 @@ export const productsService = {
       .from('products')
       .update({ is_archived: true })
       .eq('id', id);
-    
     if (error) throw error;
     return 'Sucesso';
   },
@@ -55,7 +57,6 @@ export const productsService = {
       .from('products')
       .update({ is_archived: false })
       .eq('id', id);
-    
     if (error) throw error;
     return 'Sucesso';
   },
@@ -65,38 +66,27 @@ export const productsService = {
       .from('products')
       .delete()
       .eq('id', id);
-
     if (error) throw error;
     return 'Sucesso';
   },
 
   async create(product: TablesInsert<'products'>) {
-    const { data: productData, error: productError } = await supabase
+    const { data, error } = await supabase
       .from('products')
       .insert(product)
-      .select().single()
-
-    if (productError) throw productError
-    return productData
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
   },
 
   async updated(product: TablesUpdate<'products'>) {
     if (!product.id) throw new Error('Product ID is required for updates');
-
     const { data, error } = await supabase
       .from('products')
       .update(product)
-      .eq('id', product.id as string)
-
+      .eq('id', product.id as string);
     if (error) throw error;
-    return 'Sucesso'
-  }
-}
-
-/*
-const { data: saleData, error: saleError } = await supabase
-      .from('sales')
-      .insert(sale)
-      .select()
-      .single();
-*/
+    return 'Sucesso';
+  },
+};

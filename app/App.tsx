@@ -7,6 +7,7 @@ import * as Linking from 'expo-linking';
 import { Navigation } from '@/navigation';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { ConfirmProvider } from '@/components/ConfirmDialog';
+import { SyncProvider } from '@/context/SyncContext';
 import { Button, Input } from '@/components';
 import { supabase } from '@/services/supabase';
 import { Feather } from '@expo/vector-icons';
@@ -138,10 +139,12 @@ export default function App() {
     <SafeAreaProvider>
       <ConfirmProvider>
         <ToastProvider>
-          <View className="flex-1 bg-light">
-            <Navigation />
-            <StatusBar style="auto" />
-          </View>
+          <SyncProvider>
+            <View className="flex-1 bg-light">
+              <Navigation />
+              <StatusBar style="auto" />
+            </View>
+          </SyncProvider>
           <ResetPasswordModal visible={showReset} onDone={() => setShowReset(false)} />
         </ToastProvider>
       </ConfirmProvider>

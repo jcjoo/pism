@@ -18,37 +18,46 @@ export type Database = {
         Row: {
           address: string
           cep: string | null
+          cpf: string | null
           created_at: string
           email: string | null
           id: string
-          cpf: string | null
+          is_archived: boolean
+          latitude: number | null
+          longitude: number | null
+          municipio_id: number | null
           name: string
           phone: string | null
-          municipio_id: number | null
           user_id: string
         }
         Insert: {
           address: string
           cep?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string | null
           id?: string
-          cpf?: string | null
+          is_archived?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          municipio_id?: number | null
           name: string
           phone?: string | null
-          municipio_id?: number | null
           user_id?: string
         }
         Update: {
           address?: string
           cep?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string | null
           id?: string
-          cpf?: string | null
+          is_archived?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          municipio_id?: number | null
           name?: string
           phone?: string | null
-          municipio_id?: number | null
           user_id?: string
         }
         Relationships: [
@@ -58,7 +67,63 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "municipio"
             referencedColumns: ["id"]
-          }
+          },
+        ]
+      }
+      estado: {
+        Row: {
+          codigouf: number
+          id: number
+          nome: string
+          regiao: number
+          uf: string
+        }
+        Insert: {
+          codigouf: number
+          id?: number
+          nome: string
+          regiao: number
+          uf: string
+        }
+        Update: {
+          codigouf?: number
+          id?: number
+          nome?: string
+          regiao?: number
+          uf?: string
+        }
+        Relationships: []
+      }
+      municipio: {
+        Row: {
+          codigo: number
+          estado_id: number | null
+          id: number
+          nome: string
+          uf: string
+        }
+        Insert: {
+          codigo: number
+          estado_id?: number | null
+          id?: number
+          nome: string
+          uf: string
+        }
+        Update: {
+          codigo?: number
+          estado_id?: number | null
+          id?: number
+          nome?: string
+          uf?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "municipio_estado_id_fkey"
+            columns: ["estado_id"]
+            isOneToOne: false
+            referencedRelation: "estado"
+            referencedColumns: ["id"]
+          },
         ]
       }
       products: {
@@ -66,33 +131,74 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_archived: boolean
           name: string
           price: number
           stock: number
           user_id: string
-          is_archived: boolean
         }
         Insert: {
           created_at?: string
           description?: string | null
           id?: string
+          is_archived?: boolean
           name: string
           price: number
           stock?: number
           user_id?: string
-          is_archived?: boolean
         }
         Update: {
           created_at?: string
           description?: string | null
           id?: string
+          is_archived?: boolean
           name?: string
           price?: number
           stock?: number
           user_id?: string
-          is_archived?: boolean
         }
         Relationships: []
+      }
+      sale_installments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          due_date: string
+          id: string
+          installment_number: number
+          received_at: string | null
+          sale_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          due_date: string
+          id?: string
+          installment_number: number
+          received_at?: string | null
+          sale_id: string
+          user_id?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          installment_number?: number
+          received_at?: string | null
+          sale_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_installments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sale_items: {
         Row: {
@@ -147,9 +253,9 @@ export type Database = {
           id: string
           installments: number | null
           payment: Database["public"]["Enums"]["SalePayment"]
-          user_id: string
-          received_at: string | null
           received_amount: number | null
+          received_at: string | null
+          user_id: string
         }
         Insert: {
           clientId?: string | null
@@ -158,9 +264,9 @@ export type Database = {
           id?: string
           installments?: number | null
           payment?: Database["public"]["Enums"]["SalePayment"]
-          user_id?: string
-          received_at?: string | null
           received_amount?: number | null
+          received_at?: string | null
+          user_id?: string
         }
         Update: {
           clientId?: string | null
@@ -169,9 +275,9 @@ export type Database = {
           id?: string
           installments?: number | null
           payment?: Database["public"]["Enums"]["SalePayment"]
-          user_id?: string
-          received_at?: string | null
           received_amount?: number | null
+          received_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -182,51 +288,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      estado: {
-        Row: {
-          codigouf: number
-          id: number
-          nome: string
-          regiao: number
-          uf: string
-        }
-        Insert: {
-          codigouf: number
-          id?: number
-          nome: string
-          regiao: number
-          uf: string
-        }
-        Update: {
-          codigouf?: number
-          id?: number
-          nome?: string
-          regiao?: number
-          uf?: string
-        }
-        Relationships: []
-      }
-      municipio: {
-        Row: {
-          codigo: number
-          id: number
-          nome: string
-          uf: string
-        }
-        Insert: {
-          codigo: number
-          id?: number
-          nome: string
-          uf: string
-        }
-        Update: {
-          codigo?: number
-          id?: number
-          nome?: string
-          uf?: string
-        }
-        Relationships: []
       }
     }
     Views: {
@@ -360,3 +421,11 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      SalePayment: ["installments", "cash"],
+    },
+  },
+} as const

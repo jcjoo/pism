@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  KeyboardAvoidingView, Platform,
-} from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { Button, Input, useToast } from '@/components';
+import { Button, Input, FormScrollView, useToast } from '@/components';
 
 export function Conta() {
   const navigation = useNavigation();
@@ -70,11 +67,8 @@ export function Conta() {
   const displayInitials = initials(name) || email.slice(0, 2).toUpperCase();
 
   return (
-    <KeyboardAvoidingView
-      className="screen"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+    <View className="screen">
+      <FormScrollView contentContainerStyle={{ paddingBottom: 48 }}>
 
         <View className="page-header">
           <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3 p-1">
@@ -181,7 +175,7 @@ export function Conta() {
             <Text style={{ fontSize: 15, fontWeight: '600', color: '#DF1515' }}>Sair da conta</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </FormScrollView>
+    </View>
   );
 }

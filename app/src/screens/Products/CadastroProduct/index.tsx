@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { View, KeyboardAvoidingView, Platform } from "react-native";
-import { Button, Input, useToast } from "@/components";
+import { View } from "react-native";
+import { Button, Input, FormScrollView, useToast } from "@/components";
 import { useState, useEffect } from "react";
 import { productsService } from "@/services/products.service";
 
@@ -60,7 +60,7 @@ export default function CadastroProduct({ product, step, onCancelCadastrar, onCa
   };
 
   return (
-    <View className="screen-padded">
+    <FormScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
       <View className="form-card elevation-2">
         <Input
           label="Nome do Produto"
@@ -117,6 +117,6 @@ export default function CadastroProduct({ product, step, onCancelCadastrar, onCa
         <View className="h-3" />
         <Button title="Cancelar" variant="secondary" onPress={onCancelCadastrar} />
       </View>
-    </View>
+    </FormScrollView>
   );
 }

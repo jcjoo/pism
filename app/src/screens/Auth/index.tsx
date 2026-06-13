@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Input, Button, useToast } from '../../components';
+import { Input, Button, FormScrollView, useToast } from '../../components';
 import { supabase } from '../../services/supabase';
 
 const REDIRECT_URL = 'salespro://reset-password';
@@ -70,8 +70,8 @@ export function Auth() {
 
   if (mode === 'forgot') {
     return (
-      <KeyboardAvoidingView className="screen" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
+      <View className="screen">
+        <FormScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
           <View className="items-center mb-10">
             <Feather name="lock" size={52} color="#3C096C" />
             <Text className="text-[28px] font-bold text-primary-dark mt-3">Redefinir senha</Text>
@@ -100,14 +100,14 @@ export function Auth() {
           <TouchableOpacity className="items-center mt-5" onPress={() => setMode('login')}>
             <Text className="text-primary-dark text-base">Voltar para o login</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </FormScrollView>
+      </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView className="screen" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
+    <View className="screen">
+      <FormScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
 
         <View className="items-center mb-12">
           <Feather name="shopping-bag" size={64} color="#3C096C" />
@@ -174,7 +174,7 @@ export function Auth() {
           )}
         </View>
 
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </FormScrollView>
+    </View>
   );
 }

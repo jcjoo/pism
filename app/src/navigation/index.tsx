@@ -16,6 +16,7 @@ import {
   Recebimentos,
   Conta,
   Relatorios,
+  Regioes,
 } from "../screens";
 import { useAuth } from "../hooks/useAuth";
 import Header from "./header";
@@ -139,6 +140,12 @@ function AppTabs() {
       <Tab.Screen
         name="Relatorios"
         component={Relatorios}
+        options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
+      />
+
+      <Tab.Screen
+        name="Regioes"
+        component={Regioes}
         options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
       />
     </Tab.Navigator>

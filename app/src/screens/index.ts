@@ -7,3 +7,4 @@ export * from './Products';
 export * from './Recebimentos';
 export * from './Conta';
 export * from './Relatorios';
+export * from './Regioes';

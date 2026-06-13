@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Input, Button, QuantitySelector, Select, useToast } from '@/components';
+import { Input, Button, QuantitySelector, Select, FormScrollView, useToast } from '@/components';
 import { useAuth } from '@/hooks/useAuth';
 
 import { clientsService, Client } from '@/services/clients.service';
@@ -128,11 +128,8 @@ export function NewSale() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="screen"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}>
+    <View className="screen">
+      <FormScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}>
 
         {/* Cliente e Produto */}
         <Select
@@ -276,7 +273,7 @@ export function NewSale() {
           </View>
         )}
 
-      </ScrollView>
+      </FormScrollView>
 
       {showDatePicker && (
         <DateTimePicker
@@ -315,6 +312,6 @@ export function NewSale() {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }

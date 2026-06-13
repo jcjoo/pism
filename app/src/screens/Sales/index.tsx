@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, KeyboardAvoidingView, ScrollView,
+  View, Text, KeyboardAvoidingView,
   Platform, TouchableOpacity, Modal, FlatList, TextInput,
 } from 'react-native';
+import { FormScrollView } from '@/components';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Input, Button, QuantitySelector, Select, useToast, useConfirm } from '@/components';
@@ -236,11 +237,8 @@ export function Sales() {
   );
 
   return (
-    <KeyboardAvoidingView
-      className="screen"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}>
+    <View className="screen">
+      <FormScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}>
 
         {/* FILTER */}
         {step === 'filter' && (
@@ -537,7 +535,7 @@ export function Sales() {
           </View>
         )}
 
-      </ScrollView>
+      </FormScrollView>
 
       {showDatePicker && (
         <DateTimePicker
@@ -559,11 +557,12 @@ export function Sales() {
 
       {/* Edit receipt modal */}
       <Modal visible={receiptModalVisible} transparent animationType="slide">
-        <TouchableOpacity
-          className="modal-overlay-bottom"
-          activeOpacity={1}
-          onPress={() => !savingReceipt && setReceiptModalVisible(false)}
-        >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <TouchableOpacity
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }}
+            activeOpacity={1}
+            onPress={() => !savingReceipt && setReceiptModalVisible(false)}
+          />
           <TouchableOpacity activeOpacity={1} className="modal-sheet-bottom">
             <Text className="text-lg font-bold text-primary-dark text-center mb-0.5">
               {selectedSale?.received_at ? 'Editar Recebimento' : 'Marcar como Recebido'}
@@ -612,7 +611,7 @@ export function Sales() {
               />
             </View>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Selector modal */}
@@ -645,6 +644,6 @@ export function Sales() {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
