@@ -53,8 +53,15 @@
 \usepackage{indentfirst}		% Indenta o primeiro parágrafo de cada seção.
 \usepackage{color}				% Controle das cores
 \usepackage{graphicx}			% Inclusão de gráficos
+\usepackage{grffile}			% Nomes de arquivo com espaços e caracteres especiais
 \usepackage{microtype} 			% para melhorias de justificação
 \usepackage{amsmath}			% Fórmulas matemáticas
+% ---
+
+% ---
+% Caminho base das capturas de tela (relativo ao diretório de compilação)
+% ---
+\graphicspath{{./prints/}}
 % ---
 
 % ---
@@ -94,7 +101,7 @@
   \par
   [Nome do Curso]}
 \tipotrabalho{Relatório de Projeto Integrador}
-\preambulo{Relatório técnico do projeto SalesPro, aplicativo mobile desenvolvido para auxiliar autônomos na gestão de vendas porta a porta, contemplando cadastro de clientes, produtos, registro de vendas, controle de recebimentos e otimização de rotas de entrega com suporte offline.}
+\preambulo{Relatório técnico do projeto SalesPro, aplicativo mobile desenvolvido para auxiliar autônomos na gestão de vendas porta a porta, contemplando cadastro de clientes, produtos, registro de vendas, controle de recebimentos e otimização de rotas de cobrança com base na localização GPS do vendedor.}
 % ---
 
 % ---
@@ -235,7 +242,7 @@ Agradecemos ao professor orientador pelo suporte e direcionamento ao longo do de
 % resumo em português
 \setlength{\absparsep}{18pt}
 \begin{resumo}
-O presente trabalho descreve o desenvolvimento do SalesPro, um aplicativo mobile criado para auxiliar trabalhadores autônomos que realizam vendas porta a porta. O sistema oferece funcionalidades de cadastro e gerenciamento de clientes e produtos, registro de vendas com suporte a pagamentos à vista e parcelados, controle de recebimentos com visualização em calendário e otimização de rotas de visita com suporte a funcionamento offline. A otimização de rotas é realizada por meio de uma heurística do vizinho mais próximo aplicada sobre coordenadas geográficas, com cálculo de distâncias pela fórmula de Haversine e um fator de correção para estimar distâncias reais de percurso. Para garantir o funcionamento sem conectividade, os dados são sincronizados localmente via AsyncStorage. A solução foi construída com React Native e Expo no front-end, utilizando NativeWind para estilização e Supabase como plataforma de back-end, com banco de dados PostgreSQL, autenticação integrada e políticas de segurança em nível de linha (RLS).
+O presente trabalho descreve o desenvolvimento do SalesPro, um aplicativo mobile criado para auxiliar trabalhadores autônomos que realizam vendas porta a porta. O sistema oferece funcionalidades de cadastro e gerenciamento de clientes e produtos, registro de vendas com suporte a pagamentos à vista e parcelados, controle de recebimentos com visualização em calendário e otimização de rotas de cobrança com base na posição GPS atual do vendedor. A otimização de rotas é realizada em três etapas: priorização por urgência de vencimento, seleção por capacidade de horas disponíveis e reordenação geográfica pelo algoritmo do vizinho mais próximo partindo da localização atual do dispositivo, com distâncias calculadas pela fórmula de Haversine. Para garantir o funcionamento sem conectividade, os dados são sincronizados localmente via AsyncStorage com fila de operações pendentes. A solução foi construída com React Native e Expo no front-end, utilizando NativeWind para estilização e Supabase como plataforma de back-end, com banco de dados PostgreSQL, autenticação integrada e políticas de segurança em nível de linha (RLS).
 
  \textbf{Palavras-chaves}: aplicativo mobile. React Native. Expo. Supabase. gestão de vendas. otimização de rotas. modo offline.
 \end{resumo}
@@ -243,7 +250,7 @@ O presente trabalho descreve o desenvolvimento do SalesPro, um aplicativo mobile
 % resumo em inglês
 \begin{resumo}[Abstract]
  \begin{otherlanguage*}{english}
-   This work describes the development of SalesPro, a mobile application designed to assist autonomous workers who perform door-to-door sales. The system provides features for registering and managing clients and products, recording sales with support for cash and installment payments, tracking receivables through a calendar view, and optimizing delivery routes with offline support. Route optimization is achieved through a nearest-neighbor heuristic applied to geographic coordinates, using the Haversine formula for distance calculation and a correction factor to estimate actual road distances. Local data synchronization via AsyncStorage ensures full functionality without network connectivity. The solution was built with React Native and Expo, using NativeWind for styling and Supabase as the back-end platform, with a PostgreSQL database, integrated authentication, and row-level security (RLS) policies.
+   This work describes the development of SalesPro, a mobile application designed to assist autonomous workers who perform door-to-door sales. The system provides features for registering and managing clients and products, recording sales with support for cash and installment payments, tracking receivables through a calendar view, and optimizing collection routes based on the vendor's current GPS position. Route optimization is performed in three steps: prioritization by payment urgency, selection based on available working hours, and geographic reordering using a nearest-neighbor heuristic starting from the device's current location, with distances calculated via the Haversine formula. Local data synchronization via AsyncStorage with an offline operation queue ensures full functionality without network connectivity. The solution was built with React Native and Expo, using NativeWind for styling and Supabase as the back-end platform, with a PostgreSQL database, integrated authentication, and row-level security (RLS) policies.
 
    \vspace{\onelineskip}
 
@@ -323,7 +330,7 @@ O comércio porta a porta é uma realidade para milhares de trabalhadores autôn
 
 Além do controle financeiro, a logística diária de visitas representa outro desafio: sem uma rota otimizada, o vendedor percorre distâncias desnecessárias entre os clientes, desperdiçando tempo e combustível. Agrava esse cenário o fato de que muitos vendedores atuam em regiões com conectividade móvel instável ou inexistente, tornando inviável o uso de aplicativos dependentes de conexão constante com a internet.
 
-O SalesPro foi desenvolvido para responder a esses dois eixos de necessidade. É um aplicativo mobile que centraliza a gestão comercial do autônomo — clientes, produtos, vendas e recebimentos — e ainda calcula automaticamente a melhor sequência de visitas do dia, funcionando de forma completa mesmo sem acesso à rede.
+O SalesPro foi desenvolvido para responder a esses dois eixos de necessidade. É um aplicativo mobile que centraliza a gestão comercial do autônomo — clientes, produtos, vendas e recebimentos — e ainda calcula automaticamente a melhor sequência de cobranças do dia partindo da localização GPS atual do vendedor, funcionando de forma completa mesmo sem acesso à rede.
 
 Este relatório descreve o processo de desenvolvimento do SalesPro, cobrindo a proposta do projeto, as decisões arquiteturais e tecnológicas, o fluxo das funcionalidades implementadas, o algoritmo de otimização de rotas, as estratégias de segurança adotadas e a preparação para distribuição do aplicativo.
 
@@ -342,7 +349,7 @@ Trabalhadores autônomos que atuam com vendas porta a porta enfrentam desafios c
   \item Falta de rastreamento de vendas realizadas e seus respectivos status de pagamento;
   \item Dificuldade em identificar parcelas em aberto e pagamentos em atraso;
   \item Ausência de visão consolidada dos valores a receber;
-  \item Rotas de visita não otimizadas, com deslocamentos desnecessários entre clientes;
+  \item Rotas de cobrança não otimizadas, com deslocamentos desnecessários entre clientes;
   \item Dependência de conectividade para acessar informações no campo.
 \end{itemize}
 
@@ -353,19 +360,30 @@ Sem uma ferramenta adequada, esses trabalhadores frequentemente perdem o control
 O SalesPro é um aplicativo mobile que centraliza toda a gestão comercial do vendedor autônomo em uma única plataforma. A solução oferece:
 
 \begin{itemize}
-  \item \textbf{Cadastro de clientes}: registro de nome, CPF, telefone, e-mail, endereço com busca automática por CEP e coordenadas geográficas para uso no módulo de rotas;
+  \item \textbf{Cadastro de clientes}: registro de nome, CPF, telefone, e-mail, endereço com busca automática por CEP e coordenadas geográficas via Nominatim/OpenStreetMap;
   \item \textbf{Catálogo de produtos}: gerenciamento de produtos com nome, descrição, preço e controle de estoque;
   \item \textbf{Registro de vendas}: criação de pedidos com múltiplos itens, suporte a pagamento à vista ou parcelado (2x a 6x), com data de vencimento configurável;
-  \item \textbf{Controle de recebimentos}: calendário interativo que exibe os pagamentos pendentes por data, classificados por status (atrasado, vence hoje, a vencer);
-  \item \textbf{Dashboard}: painel inicial com resumo do total a receber e alertas de parcelas em atraso;
-  \item \textbf{Otimização de rotas}: cálculo automático da sequência ideal de visitas a clientes com base em coordenadas geográficas, utilizando heurística do vizinho mais próximo e fator de correção de distância; funcionamento completo sem conexão com a internet via cache local em AsyncStorage;
-  \item \textbf{Relatórios}: visão consolidada das operações realizadas.
+  \item \textbf{Controle de recebimentos}: calendário interativo que exibe os pagamentos pendentes por data, classificados por status (atrasado, vence hoje, a vencer), com modo manual e modo de rota;
+  \item \textbf{Dashboard}: painel inicial com resumo do total a receber, calendário mensal de vencimentos e alertas de parcelas em atraso;
+  \item \textbf{Otimização de rotas de cobrança}: cálculo automático da sequência ideal de visitas com base na localização GPS atual do vendedor e nas coordenadas dos clientes, usando heurística do vizinho mais próximo; interface de swipe para registrar recebimentos em campo;
+  \item \textbf{Gestão de regiões}: controle das cidades atendidas pelo vendedor, vinculadas aos cadastros de clientes;
+  \item \textbf{Relatórios}: visão analítica das operações — produtos mais vendidos, clientes que mais compram, faturamento mensal e vendas em aberto;
+  \item \textbf{Funcionamento offline}: cache local via AsyncStorage com fila de sincronização para operações realizadas sem conexão.
 \end{itemize}
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.82\textwidth}{0pt}}
-  \caption{Visão geral da solução SalesPro — fluxo de funcionalidades}
+  \begin{minipage}{0.35\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{TelaInicial}\\[4pt]
+    {\footnotesize (a) Tela inicial — dashboard}
+  \end{minipage}\qquad
+  \begin{minipage}{0.35\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{BarraDeNavegaçao}\\[4pt]
+    {\footnotesize (b) Barra de navegação inferior}
+  \end{minipage}
+  \caption{Visão geral da interface do SalesPro}
   \label{fig:visao-geral}
 \end{figure}
 
@@ -376,11 +394,11 @@ O SalesPro é um aplicativo mobile que centraliza toda a gestão comercial do ve
 
 \section{Front-End}
 
-O front-end do SalesPro foi desenvolvido com \textbf{React Native} via \textbf{Expo}, framework que permite criar aplicativos para Android e iOS a partir de uma única base de código em TypeScript. A escolha pelo Expo se justifica pela abstração do processo de build e pelo conjunto de APIs nativas já integradas, como localização geográfica (\texttt{expo-location}) e seletor de datas.
+O front-end do SalesPro foi desenvolvido com \textbf{React Native} via \textbf{Expo SDK 55}, framework que permite criar aplicativos para Android e iOS a partir de uma única base de código em TypeScript. A escolha pelo Expo se justifica pela abstração do processo de build e pelo conjunto de APIs nativas já integradas, como localização geográfica (\texttt{expo-location}) e seletor de datas.
 
-Para a estilização, foi adotado o \textbf{NativeWind}, que traz a sintaxe utilitária do Tailwind CSS para o React Native, permitindo que os estilos sejam definidos diretamente nas classes dos componentes e eliminando grande parte do código de \textit{StyleSheet} convencional.
+Para a estilização, foi adotado o \textbf{NativeWind v4}, que traz a sintaxe utilitária do Tailwind CSS para o React Native, permitindo que os estilos sejam definidos diretamente nas classes dos componentes e eliminando grande parte do código de \textit{StyleSheet} convencional. Classes utilitárias customizadas são definidas em \texttt{global.css} e configuradas em \texttt{tailwind.config.js}.
 
-A linguagem principal é \textbf{TypeScript}, que adiciona tipagem estática ao JavaScript, aumentando a segurança do código, facilitando a detecção precoce de erros e melhorando a produtividade no desenvolvimento.
+A linguagem principal é \textbf{TypeScript}, que adiciona tipagem estática ao JavaScript, aumentando a segurança do código, facilitando a detecção precoce de erros e melhorando a produtividade no desenvolvimento. Os tipos do banco de dados são gerados automaticamente pelo Supabase CLI em \texttt{src/types/database.types.ts}.
 
 \section{Navegação}
 
@@ -388,8 +406,10 @@ A navegação entre telas é gerenciada pelo \textbf{React Navigation}, com dois
 
 \begin{itemize}
   \item \texttt{createNativeStackNavigator}: pilha principal que separa a tela de autenticação do restante do app;
-  \item \texttt{createBottomTabNavigator}: barra de abas inferior com Início, Nova Venda, Vendas e Recebimentos. Telas secundárias (Clientes, Produtos, Conta, Relatórios, Rota) são acessadas via menu lateral.
+  \item \texttt{createBottomTabNavigator}: barra de abas inferior com Início, Nova Venda, Vendas e Rota (Recebimentos). Telas secundárias (Clientes, Produtos, Regiões, Conta, Relatórios) são acessadas via menu lateral hambúrguer.
 \end{itemize}
+
+A tela de Menu é apresentada como modal com transição lateral, preservando o contexto da tela anterior. Um header customizado (\texttt{header.tsx}) compartilhado por todas as telas exibe o título e o botão hambúrguer de acesso ao menu.
 
 \section{Back-End e Banco de Dados}
 
@@ -397,20 +417,29 @@ O back-end é fornecido pelo \textbf{Supabase}, plataforma BaaS de código abert
 
 \begin{itemize}
   \item \textbf{Banco de dados PostgreSQL}: banco relacional com suporte a relacionamentos e políticas de segurança;
-  \item \textbf{Autenticação integrada}: gerenciamento de sessões com JWT, com \textit{refresh tokens} e persistência via \texttt{AsyncStorage};
-  \item \textbf{API REST auto-gerada}: cada tabela expõe endpoints REST protegidos automaticamente;
+  \item \textbf{Autenticação integrada}: gerenciamento de sessões com JWT, com \textit{refresh tokens} automáticos e persistência via \texttt{AsyncStorage};
+  \item \textbf{API REST auto-gerada}: cada tabela expõe endpoints REST protegidos automaticamente via PostgREST;
   \item \textbf{Row Level Security (RLS)}: políticas que garantem que cada usuário acesse apenas seus próprios registros.
 \end{itemize}
 
 A comunicação é feita pelo cliente oficial \texttt{@supabase/supabase-js}, com credenciais fornecidas via variáveis de ambiente (\texttt{EXPO\_PUBLIC\_SUPABASE\_URL} e \texttt{EXPO\_PUBLIC\_SUPABASE\_ANON\_KEY}).
 
-\section{Mapas e Localização}
+\section{Geocodificação}
 
-A visualização de rotas utiliza \textbf{react-native-maps}, biblioteca que renderiza mapas nativos (Google Maps no Android, Apple Maps no iOS) dentro de componentes React Native. O acesso à posição do dispositivo é feito via \textbf{expo-location}, que abstrai as permissões e APIs de GPS de cada plataforma.
+A geolocalização de endereços de clientes é feita via \textbf{Nominatim (OpenStreetMap)}, serviço gratuito e sem necessidade de chave de API. O \texttt{geocoding.service.ts} implementa três operações: busca precisa por endereço completo, busca pelo centro da cidade como fallback, e geração de sugestões de autocompletar com debounce de 500ms para o campo de endereço. As coordenadas obtidas (\texttt{latitude}/\texttt{longitude}) são persistidas no cadastro do cliente e usadas pelo algoritmo de otimização de rotas.
 
-\section{Armazenamento Local}
+O acesso à posição GPS do dispositivo é feito via \textbf{expo-location}, que abstrai as permissões e APIs de localização de cada plataforma. A posição atual é solicitada no momento da geração da rota para usar como ponto de partida do algoritmo.
 
-O \textbf{AsyncStorage} é utilizado como camada de persistência local. Originalmente integrado ao React Native e atualmente mantido como pacote independente (\texttt{@react-native-async-storage/async-storage}), oferece uma API assíncrona de chave-valor para armazenar dados estruturados no dispositivo. No SalesPro, é utilizado tanto para a sessão de autenticação quanto para o cache de dados do módulo de rotas offline.
+\section{Armazenamento Local e Sincronização Offline}
+
+O \textbf{AsyncStorage} (\texttt{@react-native-async-storage/async-storage}) é utilizado como camada de persistência local, com duas finalidades distintas:
+
+\begin{itemize}
+  \item \textbf{Cache de listas}: clientes, produtos e vendas pendentes são armazenados localmente após cada busca bem-sucedida ao Supabase, e carregados diretamente do cache quando offline;
+  \item \textbf{Fila de sincronização}: operações de recebimento realizadas offline (como marcar uma parcela como recebida) são enfileiradas localmente e enviadas ao Supabase quando a conexão é restabelecida pelo \texttt{sync.service.ts}.
+\end{itemize}
+
+O estado global de sincronização é gerenciado pelo \texttt{SyncContext}, que expõe o status (\textit{idle / syncing / synced / error}), a contagem de operações pendentes e um toggle de auto-sincronização a cada 3 minutos.
 
 \section{Testes}
 
@@ -427,9 +456,10 @@ O projeto segue uma arquitetura em camadas que separa responsabilidades de forma
 
 \begin{itemize}
   \item \textbf{Screens (Telas)}: componentes React Native responsáveis pela interface e interação com o usuário. Cada tela concentra a lógica de apresentação e delega operações de dados à camada de serviços;
-  \item \textbf{Services (Serviços)}: módulos que encapsulam toda a comunicação com o Supabase e com o armazenamento local. Cada entidade do domínio possui seu próprio serviço: \texttt{clients.service.ts}, \texttt{products.service.ts}, \texttt{sales.service.ts}, \texttt{recebimentos.service.ts}, \texttt{relatorios.service.ts} e \texttt{rotas.service.ts};
+  \item \textbf{Services (Serviços)}: módulos que encapsulam toda a comunicação com o Supabase e com o armazenamento local. Cada entidade do domínio possui seu próprio serviço: \texttt{clients.service.ts}, \texttt{products.service.ts}, \texttt{sales.service.ts}, \texttt{recebimentos.service.ts}, \texttt{relatorios.service.ts} e \texttt{endereco.service.ts};
+  \item \textbf{Context}: estado global de sincronização offline exposto via \texttt{SyncContext}, consumido pelo menu e pelas telas de recebimento;
   \item \textbf{Hooks}: lógica de estado reutilizável extraída em hooks customizados. O principal é o \texttt{useAuth}, que expõe o estado de sessão do usuário para toda a aplicação;
-  \item \textbf{Components}: biblioteca interna de componentes reutilizáveis de UI — Button, Input, Select, QuantitySelector, ConfirmDialog, Toast, Accordion, DateTime, BottomTabBar;
+  \item \textbf{Components}: biblioteca interna de componentes reutilizáveis de UI — Button, Input, Select, QuantitySelector, ConfirmDialog, Toast, Accordion, DateTime, FormScrollView;
   \item \textbf{Navigation}: camada de roteamento que controla o fluxo entre telas autenticadas e não autenticadas.
 \end{itemize}
 
@@ -470,19 +500,20 @@ Toda tabela de dados do usuário possui o campo \texttt{user\_id} preenchido na 
 \begin{verbatim}
 src/
 ├── components/       # Componentes reutilizáveis de UI
-├── hooks/            # Hooks customizados (useAuth, useOfflineSync)
-├── navigation/       # Configuração de rotas e menu
+├── context/          # SyncContext — estado global de sincronização offline
+├── hooks/            # Hooks customizados (useAuth)
+├── navigation/       # Configuração de rotas, header e menu lateral
 ├── screens/          # Telas da aplicação
-│   ├── Auth/         # Autenticação
-│   ├── Home/         # Dashboard com calendário
+│   ├── Auth/         # Autenticação (login e cadastro)
+│   ├── Home/         # Dashboard com calendário de vencimentos
 │   ├── NewSale/      # Registro de nova venda
 │   ├── Sales/        # Consulta e gestão de vendas
-│   ├── Recebimentos/ # Calendário de recebimentos
-│   ├── Rota/         # Mapa e otimização de rota
-│   ├── Clients/      # Gestão de clientes
+│   ├── Recebimentos/ # Recebimento manual e rota de cobrança com swipe
+│   ├── Clients/      # Gestão de clientes com geocodificação
 │   ├── Products/     # Gestão de produtos
-│   ├── Conta/        # Perfil do usuário
-│   └── Relatorios/   # Relatórios
+│   ├── Regioes/      # Gerenciamento de municípios atendidos
+│   ├── Relatorios/   # Relatórios analíticos
+│   └── Conta/        # Perfil e configurações do usuário
 ├── services/         # Camada de acesso ao Supabase e AsyncStorage
 ├── theme/            # Cores e tipografia
 └── types/            # Tipos TypeScript gerados pelo Supabase
@@ -495,12 +526,21 @@ src/
 
 \section{Autenticação}
 
-O fluxo de autenticação é gerenciado pelo Supabase Auth. Ao iniciar o app, o hook \texttt{useAuth} verifica a existência de uma sessão persistida no \texttt{AsyncStorage}. Caso não exista sessão válida, o usuário é redirecionado para a tela de login. Após autenticação bem-sucedida, a sessão é mantida com renovação automática de token (\textit{autoRefreshToken}), dispensando novos logins em usos subsequentes.
+O fluxo de autenticação é gerenciado pelo Supabase Auth. Ao iniciar o app, o hook \texttt{useAuth} verifica a existência de uma sessão persistida no \texttt{AsyncStorage}. Caso não exista sessão válida, o usuário é redirecionado para a tela de login. A tela alterna entre dois modos — \textit{Entrar} e \textit{Criar conta} — com campos de e-mail e senha. O campo de senha conta com um botão de olho para alternar entre exibição oculta e visível (\textit{show/hide password}), facilitando a digitação correta em campo. Após autenticação bem-sucedida, a sessão é mantida com renovação automática de token (\textit{autoRefreshToken}), dispensando novos logins em usos subsequentes.
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.45\textwidth}{0pt}}
-  \caption{Tela de autenticação do SalesPro}
+  \begin{minipage}{0.35\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Login/TelaLogin}\\[4pt]
+    {\footnotesize (a) Tela de login}
+  \end{minipage}\qquad
+  \begin{minipage}{0.35\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Login/TelaCadastroUsuario}\\[4pt]
+    {\footnotesize (b) Tela de cadastro de usuário}
+  \end{minipage}
+  \caption{Telas de autenticação do SalesPro}
   \label{fig:login}
 \end{figure}
 
@@ -510,15 +550,15 @@ A tela inicial apresenta um resumo financeiro do usuário e um calendário inter
 
 \begin{itemize}
   \item \textbf{Painel superior}: total a receber e contador de parcelas em atraso;
-  \item \textbf{Calendário mensal}: dias com vencimentos recebem pontos coloridos — vermelho para atrasado, laranja para vence hoje, roxo para a vencer;
+  \item \textbf{Calendário mensal}: dias com vencimentos recebem pontos coloridos — vermelho para atrasado, laranja para vence hoje, roxo para a vencer (máximo de 3 pontos por dia com contador);
   \item \textbf{Detalhe do dia}: ao tocar em um dia, os pagamentos esperados são listados com nome do cliente, valor e status;
   \item \textbf{Próximos vencimentos}: lista os 5 vencimentos futuros mais próximos quando nenhum dia está selecionado.
 \end{itemize}
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.45\textwidth}{0pt}}
-  \caption{Dashboard com calendário de vencimentos}
+  \includegraphics[width=0.38\textwidth]{TelaInicial}
+  \caption{Dashboard com calendário de vencimentos e painel financeiro}
   \label{fig:home}
 \end{figure}
 
@@ -527,10 +567,11 @@ A tela inicial apresenta um resumo financeiro do usuário e um calendário inter
 A tela de nova venda permite compor um pedido completo em etapas sequenciais:
 
 \begin{enumerate}
-  \item Seleção do cliente a partir do cadastro via modal de busca;
-  \item Seleção de produto, definição de quantidade e preço unitário;
+  \item Seleção do cliente a partir do cadastro via modal de busca filtrada;
+  \item Seleção de produto, definição de quantidade e preço unitário via seletores modais;
   \item Adição de múltiplos itens ao carrinho, com edição inline e remoção individual;
   \item Configuração da data de vencimento e forma de pagamento (à vista ou parcelado em 2x a 6x);
+  \item Configuração de observação opcional;
   \item Confirmação, que persiste a venda, os itens e, se parcelada, os registros individuais de parcelas.
 \end{enumerate}
 
@@ -538,38 +579,125 @@ Para vendas parceladas, o serviço \texttt{salesService.create} gera automaticam
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.45\textwidth}{0pt}}
-  \caption{Tela de registro de nova venda com carrinho preenchido}
+  \begin{minipage}{0.35\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Venda/TelaNovaVenda(Sem Dados)}\\[4pt]
+    {\footnotesize (a) Formulário vazio}
+  \end{minipage}\qquad
+  \begin{minipage}{0.35\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Venda/TelaNovaVenda(Com Dados)}\\[4pt]
+    {\footnotesize (b) Carrinho preenchido}
+  \end{minipage}
+  \caption{Tela de registro de nova venda}
   \label{fig:nova-venda}
 \end{figure}
 
 \section{Consulta e Gestão de Vendas}
 
-A tela de vendas oferece filtros por cliente, por intervalo de data de criação, por intervalo de data de vencimento e por status (todas, pendentes, recebidas). A partir da listagem, o vendedor pode:
+A tela de vendas opera em quatro etapas (\textit{steps}): filtros → listagem → detalhes → edição. Os filtros disponíveis são: cliente, produto, intervalo de data de criação, intervalo de data de vencimento e status (todas, pendentes, recebidas). A partir da listagem, o vendedor pode:
 
 \begin{itemize}
   \item Visualizar os detalhes completos de uma venda (cliente, itens, total, status de cada parcela);
-  \item Registrar o recebimento de uma venda à vista ou de parcelas individuais;
-  \item Editar dados da venda;
+  \item Registrar o recebimento de uma venda à vista ou de parcelas individuais via modal;
+  \item Editar dados da venda (carrinho, vencimento, pagamento e observação);
   \item Excluir uma venda, com confirmação via diálogo.
 \end{itemize}
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.45\textwidth}{0pt}}
-  \caption{Tela de consulta e gestão de vendas com filtros}
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Consultar Vendas/TelaConsultaDeVendas}\\[4pt]
+    {\footnotesize (a) Listagem de vendas}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Consultar Vendas/TelaVendasFiltradas}\\[4pt]
+    {\footnotesize (b) Filtros aplicados}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Consultar Vendas/TelaVisualizacaoVenda}\\[4pt]
+    {\footnotesize (c) Detalhes da venda}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Consultar Vendas/TelaEdiçãoDeVenda}\\[4pt]
+    {\footnotesize (d) Edição de venda}
+  \end{minipage}
+  \caption{Tela de consulta e gestão de vendas}
   \label{fig:vendas}
 \end{figure}
 
 \section{Controle de Recebimentos}
 
-A tela de recebimentos exibe um calendário dedicado ao acompanhamento de pagamentos pendentes. Cada dia com vencimentos mostra marcadores coloridos; ao selecionar um dia, os pagamentos esperados são listados com nome do cliente, número de parcela e valor. O registro de recebimento pode ser feito diretamente nessa tela, sem necessidade de navegar até a venda.
+A tela de recebimentos é a mais complexa do app e oferece duas abas distintas, selecionáveis pelo usuário: \textbf{Recebimento Manual} e \textbf{Rota de Recebimento}.
+
+\subsection{Recebimento Manual}
+
+A aba de recebimento manual exibe uma lista de todas as vendas pendentes de pagamento, com busca textual por cliente, filtros de status (atrasado, hoje, esta semana) e filtro por cidade. Cada card exibe o nome do cliente, o valor pendente, o status de vencimento com codificação de cores e um indicador de parcelas. O registro de recebimento pode ser feito diretamente nessa tela:
+
+\begin{itemize}
+  \item Para vendas à vista: abre modal para confirmar data e valor recebido;
+  \item Para vendas parceladas: abre modal de seleção de parcelas, permitindo registrar uma ou mais parcelas de uma vez.
+\end{itemize}
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.45\textwidth}{0pt}}
-  \caption{Tela de recebimentos com calendário e lista de vencimentos do dia}
+  \begin{minipage}{0.35\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Recebimento/Recimento Manual/TelaRecebimentoManual}\\[4pt]
+    {\footnotesize (a) Lista de recebimentos pendentes}
+  \end{minipage}\qquad
+  \begin{minipage}{0.35\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Recebimento/Recimento Manual/TelaRecebimentoManual (Visualizar Venda)}\\[4pt]
+    {\footnotesize (b) Detalhes da venda selecionada}
+  \end{minipage}
+  \caption{Tela de recebimento manual}
   \label{fig:recebimentos}
+\end{figure}
+
+\subsection{Rota de Recebimento}
+
+A aba de rota de recebimento gera automaticamente uma sequência otimizada de cobranças para o dia. O vendedor configura três parâmetros: horas disponíveis, minutos médios por parada e data-alvo. Ao clicar em \textbf{Gerar Rota}, o app solicita a permissão de localização GPS, obtém a posição atual do dispositivo via \texttt{expo-location} e executa o algoritmo de otimização localmente (Seção~\ref{subsec:nn}).
+
+A interface de execução da rota é baseada em \textbf{cards deslizáveis} (\textit{swipe cards}), operados via \texttt{PanResponder} com animação \texttt{Animated}:
+
+\begin{itemize}
+  \item \textbf{Arrastar para a direita}: registra o recebimento da parada atual;
+  \item \textbf{Arrastar para a esquerda}: pula a parada (adia para outra visita);
+  \item \textbf{Barra de progresso}: exibe quantas paradas foram concluídas e quantas restam;
+  \item \textbf{Card expandido}: mostra dados do cliente, valor pendente, itens da venda, vencimento e observação.
+\end{itemize}
+
+Ao concluir todas as paradas, uma tela de resumo exibe o total de recebimentos realizados, o valor arrecadado e a lista de paradas puladas. Para clientes com coordenadas cadastradas, um botão de navegação abre o Google Maps com destino ao endereço.
+
+\begin{figure}[htb]
+  \centering
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Recebimento/Rota de Recebimento/TelaRotaDeRecebimento}\\[4pt]
+    {\footnotesize (a) Configuração da rota}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Recebimento/Rota de Recebimento/TelaRotaDeRecebimento (Rota Gerada)}\\[4pt]
+    {\footnotesize (b) Rota gerada — card}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Recebimento/Rota de Recebimento/TelaRotaDeRecebimento (Arrastando para Receber)}\\[4pt]
+    {\footnotesize (c) Swipe direita — receber}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Recebimento/Rota de Recebimento/TelaRotaDeRecebimento (Arrastando para Pular)}\\[4pt]
+    {\footnotesize (d) Swipe esquerda — pular}
+  \end{minipage}
+  \caption{Tela de rota de recebimento com interface de swipe}
+  \label{fig:rota-swipe}
 \end{figure}
 
 \section{Gestão de Clientes}
@@ -577,16 +705,36 @@ A tela de recebimentos exibe um calendário dedicado ao acompanhamento de pagame
 O módulo de clientes implementa CRUD completo:
 
 \begin{itemize}
-  \item \textbf{Listagem}: busca por nome com exibição de contato, endereço e coordenadas;
-  \item \textbf{Cadastro/Edição}: formulário com busca automática de endereço por CEP via API de geolocalização, seleção de município e estado, e registro das coordenadas (latitude e longitude) para uso na otimização de rotas;
+  \item \textbf{Listagem}: busca por nome com exibição de contato, cidade e status (ativo/arquivado);
+  \item \textbf{Cadastro/Edição}: formulário com nome, e-mail, telefone, CPF (não editável após cadastro), seleção de estado e município, campo de endereço com autocompletar via Nominatim (debounce de 500ms) e badge de status de geocodificação;
+  \item \textbf{Geocodificação automática}: ao alterar o endereço ou cidade, o sistema tenta obter coordenadas precisas pelo endereço completo; se não encontrar, usa o centro do município como fallback. O badge indica visualmente o resultado (\textit{endereço encontrado / coordenada da cidade / não encontrado});
   \item \textbf{Arquivamento}: clientes com vendas associadas são arquivados em vez de excluídos, preservando o histórico financeiro;
   \item \textbf{Exclusão}: disponível apenas para clientes sem vendas vinculadas.
 \end{itemize}
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.45\textwidth}{0pt}}
-  \caption{Tela de listagem de clientes e formulário de cadastro}
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Clientes/TelaInicialClientes}\\[4pt]
+    {\footnotesize (a) Listagem de clientes}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Clientes/TelaCadastroCliente}\\[4pt]
+    {\footnotesize (b) Formulário de cadastro}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Clientes/VisualizarCliente}\\[4pt]
+    {\footnotesize (c) Detalhes do cliente}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Clientes/TelaEditarCliente}\\[4pt]
+    {\footnotesize (d) Edição do cliente}
+  \end{minipage}
+  \caption{Módulo de gestão de clientes}
   \label{fig:clientes}
 \end{figure}
 
@@ -596,9 +744,94 @@ O módulo de produtos implementa CRUD completo, com campos de nome, descrição,
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.45\textwidth}{0pt}}
-  \caption{Tela de gestão de produtos com listagem e controle de estoque}
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Produtos/TelaInicialProdutos}\\[4pt]
+    {\footnotesize (a) Listagem de produtos}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Produtos/TelaCadastroProduto}\\[4pt]
+    {\footnotesize (b) Formulário de cadastro}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Produtos/VisualizarProduto}\\[4pt]
+    {\footnotesize (c) Detalhes do produto}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Produtos/TelaEditarProduto}\\[4pt]
+    {\footnotesize (d) Edição do produto}
+  \end{minipage}
+  \caption{Módulo de gestão de produtos}
   \label{fig:produtos}
+\end{figure}
+
+\section{Menu Lateral e Navegação Secundária}
+
+O menu lateral é acessado pelo botão hambúrguer no header de qualquer tela e é apresentado como modal com transição da direita. Exibe:
+
+\begin{itemize}
+  \item \textbf{Avatar do usuário}: círculo com as iniciais do nome e e-mail; toque navega para a tela de Conta;
+  \item \textbf{Atalhos}: Clientes, Produtos, Regiões e Relatórios;
+  \item \textbf{Painel de sincronização}: status da fila offline (\textit{idle/syncing/synced/error}), contagem de operações pendentes, timestamp da última sincronização e toggle de auto-sync a cada 3 minutos;
+  \item \textbf{Botão de logout}: encerra a sessão e redireciona para a tela de autenticação.
+\end{itemize}
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.38\textwidth]{Menu Lateral/MenuLateral}
+  \caption{Menu lateral com navegação secundária e painel de sincronização}
+  \label{fig:menu-lateral}
+\end{figure}
+
+\section{Gestão de Regiões}
+
+O módulo de regiões gerencia os municípios onde o vendedor atua. Cada cliente é vinculado a um município, e a listagem de regiões mostra as cidades agrupadas por estado. O vendedor pode adicionar novas cidades via modal de dois passos (selecionar estado → digitar nome do município) e excluir cidades que não possuam clientes vinculados.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.38\textwidth]{Menu Lateral/Regiões/TelaInicialRegioes}
+  \caption{Tela de gerenciamento de regiões (municípios atendidos)}
+  \label{fig:regioes}
+\end{figure}
+
+\section{Relatórios}
+
+O módulo de relatórios oferece quatro visões analíticas das operações do vendedor, cada uma acessível por um card no índice de relatórios:
+
+\begin{itemize}
+  \item \textbf{Produtos mais vendidos}: ranking por quantidade ou valor (R\$) com barras de proporção e filtro de período (7, 30, 90 dias ou todos);
+  \item \textbf{Clientes que mais compram}: ranking de clientes por valor total gasto com barras de proporção;
+  \item \textbf{Faturamento mensal}: gráfico de barras horizontal dos últimos 6 meses com totais por mês;
+  \item \textbf{Vendas em aberto}: lista de vendas não recebidas agrupadas por status de vencimento (atrasado, hoje, esta semana, futuro).
+\end{itemize}
+
+\begin{figure}[htb]
+  \centering
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Relatorios/RelatorioProdutosMaisVendidos}\\[4pt]
+    {\footnotesize (a) Produtos mais vendidos}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Relatorios/RelatorioClienteQueMaisCompra}\\[4pt]
+    {\footnotesize (b) Clientes que mais compram}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Relatorios/RelatorioFaturamentoMensal}\\[4pt]
+    {\footnotesize (c) Faturamento mensal}
+  \end{minipage}\quad
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Menu Lateral/Relatorios/RelatorioVendasEmAberto}\\[4pt]
+    {\footnotesize (d) Vendas em aberto}
+  \end{minipage}
+  \caption{Módulo de relatórios analíticos}
+  \label{fig:relatorios}
 \end{figure}
 
 % ----------------------------------------------------------
@@ -608,29 +841,29 @@ O módulo de produtos implementa CRUD completo, com campos de nome, descrição,
 
 \section{Motivação}
 
-A rotina do vendedor autônomo envolve visitar múltiplos clientes ao longo do dia. Sem uma sequência planejada, é comum percorrer distâncias desnecessárias — visitando um cliente no extremo norte do bairro, depois outro no sul, e voltando ao norte em seguida. Esse comportamento desperdiça tempo e combustível, dois recursos críticos para trabalhadores que operam com margens apertadas.
+A rotina do vendedor autônomo envolve visitar múltiplos clientes para cobrar pagamentos ao longo do dia. Sem uma sequência planejada, é comum percorrer distâncias desnecessárias — visitando um cliente no extremo norte do bairro, depois outro no sul, e voltando ao norte em seguida. Esse comportamento desperdiça tempo e combustível, dois recursos críticos para trabalhadores que operam com margens apertadas.
 
 Um segundo fator agrava o problema: parte significativa das rotas de vendas ocorre em áreas periféricas ou rurais, onde a cobertura de dados móveis é instável. Soluções que dependem de chamadas constantes a serviços de roteamento na nuvem (como Google Maps Directions API) se tornam inoperantes exatamente quando mais são necessárias.
 
-O SalesPro resolve ambos os problemas com um módulo de otimização de rotas que opera inteiramente no dispositivo, sem necessidade de rede, e calcula em milissegundos a melhor sequência de visitas para o dia.
+O SalesPro resolve ambos os problemas com um módulo de otimização de rotas que opera inteiramente no dispositivo, sem necessidade de rede, e calcula em milissegundos a melhor sequência de cobranças para o dia partindo da localização real do vendedor.
 
 \section{Armazenamento Local e Sincronização Offline}
 
-A estratégia de funcionamento offline é construída sobre o \textbf{AsyncStorage}, camada de persistência chave-valor do React Native. O fluxo de sincronização opera da seguinte forma:
+A estratégia de funcionamento offline é construída sobre o \textbf{AsyncStorage}. O fluxo de sincronização opera da seguinte forma:
 
 \begin{enumerate}
-  \item \textbf{Quando online}: ao abrir o módulo de rotas, o app busca do Supabase a lista atualizada de clientes com suas coordenadas e a persiste localmente em AsyncStorage sob uma chave identificada pelo \texttt{user\_id};
-  \item \textbf{Quando offline}: o app detecta a ausência de conectividade e carrega os dados diretamente do cache local, exibindo um indicador visual de modo offline ao usuário;
-  \item \textbf{Ao reconectar}: na próxima abertura com rede disponível, o cache é atualizado automaticamente, garantindo que as coordenadas de novos clientes ou atualizações de endereço sejam refletidas nas rotas subsequentes.
+  \item \textbf{Quando online}: ao carregar as telas de recebimentos e clientes, o app busca do Supabase os dados atualizados e os persiste localmente em AsyncStorage sob chaves identificadas pelo \texttt{user\_id};
+  \item \textbf{Quando offline}: o app carrega os dados diretamente do cache local. Operações de recebimento são enfileiradas no \texttt{SYNC\_QUEUE} pelo \texttt{storage.service.ts};
+  \item \textbf{Ao reconectar}: o \texttt{sync.service.ts} drena a fila (\texttt{flushQueue}), enviando as operações pendentes ao Supabase em ordem, e em seguida atualiza os caches com os dados mais recentes.
 \end{enumerate}
 
-Além dos dados de clientes, o AsyncStorage armazena a última rota calculada e a lista de clientes marcados como visitados na sessão atual, permitindo que o vendedor retome o dia sem perder o progresso mesmo que o app seja fechado.
+O estado global de sincronização é exibido no menu lateral, permitindo que o vendedor acompanhe em tempo real quantas operações estão aguardando envio e quando foi a última sincronização bem-sucedida.
 
 \section{Algoritmo de Otimização}
 
 \subsection{Formulação do Problema}
 
-O problema de sequenciamento de visitas é uma instância do \textit{Traveling Salesman Problem} (TSP): dado um conjunto de $n$ pontos geográficos (clientes) e um ponto de partida (posição atual do vendedor), encontrar a ordem de visita que minimize a distância total percorrida. O TSP é NP-difícil em sua formulação exata, mas para os tamanhos práticos de instância do SalesPro — tipicamente entre 5 e 50 clientes por rota diária — a heurística do vizinho mais próximo produz soluções de boa qualidade com custo computacional desprezível.
+O problema de sequenciamento de cobranças é uma instância do \textit{Traveling Salesman Problem} (TSP): dado um conjunto de $n$ pontos geográficos (clientes) e um ponto de partida (posição atual do vendedor), encontrar a ordem de visita que minimize a distância total percorrida. O TSP é NP-difícil em sua formulação exata, mas para os tamanhos práticos de instância do SalesPro — tipicamente entre 5 e 50 clientes por rota diária — a heurística do vizinho mais próximo produz soluções de boa qualidade com custo computacional desprezível.
 
 \subsection{Cálculo de Distância — Fórmula de Haversine}
 
@@ -643,38 +876,26 @@ d = 2r \cdot \arcsin\!\left(\sqrt{\sin^2\!\left(\frac{\Delta\varphi}{2}\right) +
 
 onde $\Delta\varphi = \varphi_2 - \varphi_1$, $\Delta\lambda = \lambda_2 - \lambda_1$ e $r = 6371\,\text{km}$ é o raio médio da Terra.
 
-\subsection{Fator de Correção}
-
-A fórmula de Haversine fornece a distância em linha reta (\textit{as-the-crow-flies}), que subestima a distância real de percurso pelas vias urbanas. Para compensar essa diferença, aplica-se um \textbf{fator de correção} $f$:
-
-\begin{equation}
-d_{\text{rota}} = f \cdot d_{\text{Haversine}}
-\label{eq:correcao}
-\end{equation}
-
-O valor padrão adotado é $f = 1{,}3$, que reflete a relação empírica entre distância euclidiana e distância viária em malhas urbanas brasileiras de densidade média. Esse fator é configurável por região no módulo de administração do app, permitindo ajuste para áreas com traçado viário irregular (onde $f$ pode chegar a 1,5) ou para regiões com boa ortogonalidade de ruas (onde $f$ pode ser reduzido a 1,2).
-
-A correção é aplicada exclusivamente para estimativa de distância total e tempo de deslocamento exibidos ao usuário; a comparação entre distâncias durante a construção da rota usa sempre os valores brutos de Haversine, mantendo a consistência do algoritmo.
-
 \subsection{Heurística do Vizinho Mais Próximo}
 \label{subsec:nn}
 
 A construção da rota segue o algoritmo de \textit{nearest neighbor} (vizinho mais próximo):
 
 \begin{enumerate}
-  \item Obter a posição atual do vendedor via GPS (\texttt{expo-location}) ou, caso o GPS não esteja disponível, usar a última posição conhecida armazenada em AsyncStorage;
-  \item Inicializar a rota com a posição atual como ponto de partida;
-  \item Para cada passo, calcular a distância Haversine entre o último ponto da rota e todos os clientes ainda não visitados;
+  \item Obter a posição atual do vendedor via GPS (\texttt{expo-location}), solicitando a permissão em tempo de execução;
+  \item Inicializar a rota encontrando o cliente mais próximo da posição atual do dispositivo;
+  \item Para cada passo seguinte, calcular a distância Haversine entre o último cliente visitado e todos os clientes ainda não selecionados;
   \item Selecionar o cliente com menor distância e adicioná-lo à rota;
-  \item Repetir os passos 3 e 4 até que todos os clientes da lista do dia estejam na rota;
-  \item Aplicar o fator de correção $f$ ao somatório de distâncias para exibir a estimativa total de percurso.
+  \item Repetir os passos 3 e 4 até que todas as paradas selecionadas estejam na rota.
 \end{enumerate}
 
 A complexidade do algoritmo é $O(n^2)$ em relação ao número de clientes $n$, o que para $n = 50$ resulta em 2.500 operações — executadas em tempo imperceptível em qualquer dispositivo mobile moderno.
 
+Caso a permissão de localização seja negada pelo usuário, o algoritmo inicia pelo cliente de maior urgência de vencimento como fallback, preservando o funcionamento da funcionalidade.
+
 \section{Otimização de Sequência nos Recebimentos}
 
-O módulo de Rota de Recebimento aplica o mesmo par Haversine + vizinho mais próximo para ordenar a lista de paradas de cobrança do dia, operando inteiramente no dispositivo sem acesso à rede.
+O módulo de Rota de Recebimento combina priorização por urgência financeira com reordenação geográfica, operando inteiramente no dispositivo sem acesso à rede.
 
 \subsection{Etapas do Algoritmo}
 
@@ -690,48 +911,12 @@ A construção da rota de recebimentos segue três etapas sequenciais:
   \end{equation}
   onde $H_{\text{disp}}$ é o número de horas disponíveis e $\bar{t}_{\text{parada}}$ é o tempo médio estimado por parada (ambos configuráveis pelo usuário);
 
-  \item \textbf{Reordenação geográfica}: as paradas selecionadas são reordenadas pelo algoritmo do vizinho mais próximo (Seção~\ref{subsec:nn}), partindo da parada de maior urgência — garantindo que o recebimento mais crítico seja a primeira visita do dia — e construindo o restante da rota de forma gulosa para minimizar o deslocamento total.
+  \item \textbf{Reordenação geográfica}: as paradas selecionadas são reordenadas pelo algoritmo do vizinho mais próximo (Seção~\ref{subsec:nn}), partindo da localização GPS atual do vendedor — garantindo que a primeira visita do dia seja o cliente mais próximo da posição de saída — e construindo o restante da rota de forma gulosa para minimizar o deslocamento total.
 \end{enumerate}
 
 \subsection{Tratamento de Coordenadas Ausentes}
 
 Quando um cliente não possui coordenadas cadastradas (campos \texttt{latitude} e \texttt{longitude} nulos), a etapa de reordenação geográfica é ignorada para aquela parada: o algoritmo mantém a posição imediatamente após o último ponto com coordenada válida, preservando a sequência por urgência como fallback. Isso garante que a funcionalidade opere corretamente mesmo em cadastros incompletos, sem exigir conectividade para consultar APIs de geocodificação externas.
-
-\subsection{Distância Estimada Total}
-
-Ao finalizar a reordenação, a distância total da rota é calculada somando as distâncias Haversine entre paradas consecutivas e aplicando o fator de correção $f = 1{,}3$ (Equação~\ref{eq:correcao}):
-
-\begin{equation}
-  D_{\text{total}} = f \cdot \sum_{i=1}^{n-1} d_{\text{Haversine}}(p_i,\, p_{i+1})
-  \label{eq:dist-total}
-\end{equation}
-
-Essa estimativa é exibida ao usuário antes do início da rota como referência de planejamento, sem impacto na sequência calculada.
-
-\section{Interface de Rotas}
-
-A tela de rotas é dividida em duas visualizações alternáveis pelo usuário:
-
-\begin{itemize}
-  \item \textbf{Mapa}: exibe os pins de cada cliente sobre o mapa (renderizado via \texttt{react-native-maps}), conectados por uma polilinha na sequência otimizada. A posição atual do vendedor é exibida em tempo real com atualização contínua;
-  \item \textbf{Lista}: exibe os clientes em ordem de visita, com nome, endereço, distância estimada até o próximo ponto e status (a visitar / visitado).
-\end{itemize}
-
-Ao tocar em um cliente na lista ou no mapa, o app exibe os detalhes de contato e um botão para marcá-lo como visitado. Clientes visitados são removidos da rota ativa e o restante da sequência é mantido, sem recalculação, preservando a ordem otimizada original.
-
-\begin{figure}[htb]
-  \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.45\textwidth}{0pt}}
-  \caption{Tela de rotas — visualização em mapa com rota otimizada}
-  \label{fig:rota-mapa}
-\end{figure}
-
-\begin{figure}[htb]
-  \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.45\textwidth}{0pt}}
-  \caption{Tela de rotas — visualização em lista com distâncias estimadas}
-  \label{fig:rota-lista}
-\end{figure}
 
 \section{Justificativa das Escolhas Técnicas}
 
@@ -749,6 +934,8 @@ A abordagem escolhida foi deliberadamente desenhada para o contexto de uso do Sa
   Custo & Zero & Por requisição (cobrança acima de cota gratuita) \\
   \hline
   Latência & $<$10 ms (processamento local) & 200--1000 ms (round-trip de rede) \\
+  \hline
+  Ponto de partida & Localização GPS real do vendedor & Localização GPS real do vendedor \\
   \hline
   Precisão de distância & Aproximada ($\pm$30\%) & Alta (distância real de percurso) \\
   \hline
@@ -768,26 +955,27 @@ Para o perfil de uso do SalesPro — vendedores em campo com conectividade inst�
 
 \section{Identidade Visual}
 
-O SalesPro adota uma paleta centrada em tons de roxo — \texttt{\#3C096C} como cor primária escura, \texttt{\#5A189A} como primária e \texttt{\#E1DAE8} como fundo suave — transmitindo seriedade e confiança. Os indicadores de status de pagamento seguem codificação semântica: vermelho (\texttt{\#DF1515}) para atrasos, laranja (\texttt{\#FF8C00}) para vencimentos do dia e roxo para vencimentos futuros. O mesmo sistema de cores é reutilizado nos pins e polilinhas da tela de rotas, mantendo consistência visual entre os módulos.
+O SalesPro adota uma paleta centrada em tons de roxo — \texttt{\#3C096C} como cor primária escura, \texttt{\#5A189A} como primária e \texttt{\#E1DAE8} como fundo suave — transmitindo seriedade e confiança. Os indicadores de status de pagamento seguem codificação semântica: vermelho (\texttt{\#DF1515}) para atrasos, laranja (\texttt{\#FF8C00}) para vencimentos do dia e roxo para vencimentos futuros. O mesmo sistema de cores é reutilizado nos pontos do calendário e nos badges de status em toda a aplicação, mantendo consistência visual entre os módulos.
 
 \section{Navegação e Usabilidade}
 
-A navegação principal segue o padrão de \textit{bottom tab bar}, consolidado em aplicativos mobile. As quatro abas principais — Início, Nova Venda, Vendas e Recebimentos — cobrem o fluxo diário do vendedor. As telas de gerenciamento (Clientes, Produtos, Rota, Conta, Relatórios) são acessadas por um menu lateral deslizante, evitando poluição visual na barra de abas.
+A navegação principal segue o padrão de \textit{bottom tab bar}, consolidado em aplicativos mobile. As quatro abas principais — Início, Nova Venda, Vendas e Rota — cobrem o fluxo diário do vendedor. As telas de gerenciamento (Clientes, Produtos, Regiões, Conta, Relatórios) são acessadas por um menu lateral hambúrguer, evitando poluição visual na barra de abas.
 
-A interface prioriza ações rápidas: o vendedor registra uma venda completa em menos de um minuto, com seletores modais para cliente e produto, carrinho com edição inline e confirmação em um único botão.
+A interface prioriza ações rápidas: o vendedor registra uma venda completa em menos de um minuto, com seletores modais para cliente e produto, carrinho com edição inline e confirmação em um único botão. A interface de swipe na rota de recebimentos foi projetada para uso em campo com uma mão, com alvos de toque amplos e feedback visual imediato.
 
 \section{Componentes Reutilizáveis}
 
 A aplicação conta com uma biblioteca interna de componentes padronizados:
 
 \begin{itemize}
-  \item \textbf{Button}: botão com três variantes de estilo (primary, primary-dark, secondary) e suporte a ícone;
-  \item \textbf{Input}: campo de texto com label integrado e suporte a teclado numérico;
+  \item \textbf{Button}: botão com cinco variantes de estilo (primary, primary-dark, primary-light, secondary, danger) e suporte a ícone;
+  \item \textbf{Input}: campo de texto com label integrado, suporte a teclado numérico e toggle show/hide para campos de senha;
   \item \textbf{Select}: campo que abre modal de seleção com lista filtrável;
-  \item \textbf{QuantitySelector}: seletor numérico com botões de incremento e decremento;
-  \item \textbf{ConfirmDialog}: diálogo de confirmação para ações destrutivas (exclusão, cancelamento);
-  \item \textbf{Toast}: sistema de notificações de feedback com tipos sucesso, erro e aviso;
-  \item \textbf{Accordion}: componente expansível para listas com detalhes colapsáveis.
+  \item \textbf{QuantitySelector}: seletor numérico com botões de incremento e decremento; aceita \texttt{displayText} para exibir texto em vez de número;
+  \item \textbf{ConfirmDialog}: diálogo de confirmação para ações destrutivas, retornando \texttt{Promise<boolean>};
+  \item \textbf{Toast}: sistema de notificações de feedback com tipos sucesso, erro, aviso e info;
+  \item \textbf{Accordion}: componente expansível para listas com detalhes colapsáveis;
+  \item \textbf{FormScrollView}: \texttt{ScrollView} com \texttt{KeyboardAvoidingView} integrado, adequado para formulários.
 \end{itemize}
 
 % ----------------------------------------------------------
@@ -847,13 +1035,6 @@ O projeto oferece dois caminhos de build via Expo:
 
 Para a apresentação do projeto, o app pode ser executado diretamente via \texttt{expo start} com Expo Go, dispensando o processo de build e permitindo demonstração em tempo real no dispositivo do professor.
 
-\begin{figure}[htb]
-  \centering
-  \fbox{\rule{0pt}{3cm}\rule{0.6\textwidth}{0pt}}
-  \caption{SalesPro em execução no dispositivo durante demonstração}
-  \label{fig:build}
-\end{figure}
-
 % ----------------------------------------------------------
 % Conclusão
 % ----------------------------------------------------------
@@ -863,9 +1044,9 @@ Para a apresentação do projeto, o app pode ser executado diretamente via \text
 
 O SalesPro entrega uma solução completa e funcional para o autônomo de vendas porta a porta. A combinação de React Native com Expo garantiu uma base de código única para Android e iOS, enquanto o Supabase eliminou a necessidade de desenvolver infraestrutura de back-end própria, permitindo que o time concentrasse esforços na experiência do usuário e nas regras de negócio.
 
-As principais entregas do projeto foram: autenticação segura com sessões persistidas, cadastro completo de clientes e produtos com suporte a arquivamento, fluxo de venda com carrinho e parcelamento automático, calendário de vencimentos com rastreamento visual de status, controle de recebimentos por parcela e otimização de rotas com heurística do vizinho mais próximo aplicada sobre coordenadas geográficas com fator de correção, operando de forma completa sem dependência de rede via cache AsyncStorage.
+As principais entregas do projeto foram: autenticação segura com sessões persistidas e toggle show/hide de senha, cadastro completo de clientes com geocodificação automática via Nominatim, catálogo de produtos com arquivamento, fluxo de venda com carrinho e parcelamento automático, calendário de vencimentos com rastreamento visual de status, controle de recebimentos em modo manual e em modo de rota com interface de swipe, relatórios analíticos com filtros de período e otimização de rotas de cobrança com heurística do vizinho mais próximo partindo da localização GPS real do vendedor, com operação completa offline via AsyncStorage e fila de sincronização.
 
-A escolha por um algoritmo de otimização local em vez de APIs de roteamento externas reflete a realidade operacional dos usuários do sistema: vendedores em campo com conectividade instável que precisam de uma ferramenta confiável independentemente do sinal. Essa decisão de arquitetura demonstra que é possível oferecer funcionalidade inteligente em aplicativos mobile sem sacrificar a robustez offline.
+A escolha por um algoritmo de otimização local em vez de APIs de roteamento externas reflete a realidade operacional dos usuários do sistema: vendedores em campo com conectividade instável que precisam de uma ferramenta confiável independentemente do sinal. O uso da posição GPS do dispositivo como ponto de partida da rota garante que a sequência calculada reflita a situação real do vendedor no momento da saída, evitando que a ordenação por urgência financeira sobreponha a eficiência geográfica. Essa decisão de arquitetura demonstra que é possível oferecer funcionalidade inteligente em aplicativos mobile sem sacrificar a robustez offline.
 
 % ----------------------------------------------------------
 % ELEMENTOS PÓS-TEXTUAIS
@@ -939,69 +1120,65 @@ if (payment === 'installments' && installments > 1) {
 }
 \end{verbatim}
 
-\section{Algoritmo de Otimização de Rota}
+\section{Algoritmo de Haversine}
 
-O serviço \texttt{rotas.service.ts} implementa o cálculo de Haversine e a heurística do vizinho mais próximo. O mesmo par de funções é reutilizado na tela de recebimentos (\texttt{screens/Recebimentos/index.tsx}) para ordenar geograficamente as paradas de cobrança do dia:
+A função \texttt{haversineKm} em \texttt{screens/Recebimentos/helpers.ts} calcula a distância em quilômetros entre dois pontos geográficos:
 
 \begin{verbatim}
-function haversine(a: Coord, b: Coord): number {
-  const R = 6371;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const h =
+function toRad(deg: number) { return (deg * Math.PI) / 180; }
+
+function haversineKm(
+  lat1: number, lon1: number,
+  lat2: number, lon2: number
+): number {
+  const R    = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) *
-    Math.cos(toRad(b.lat)) *
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
     Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-function nearestNeighbor(
-  start: Coord,
-  clients: ClientWithCoord[],
-  correctionFactor = 1.3
-): { route: ClientWithCoord[]; totalKm: number } {
-  const unvisited = [...clients];
-  const route: ClientWithCoord[] = [];
-  let current = start;
-  let totalKm = 0;
-
-  while (unvisited.length > 0) {
-    let nearestIdx = 0;
-    let nearestDist = Infinity;
-    unvisited.forEach((c, i) => {
-      const d = haversine(current, { lat: c.lat, lon: c.lon });
-      if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
-    });
-    const next = unvisited.splice(nearestIdx, 1)[0];
-    totalKm += nearestDist;
-    route.push(next);
-    current = { lat: next.lat, lon: next.lon };
-  }
-
-  return { route, totalKm: totalKm * correctionFactor };
+  return 2 * R * Math.asin(Math.sqrt(a));
 }
 \end{verbatim}
 
 \section{Ordenação Geográfica na Rota de Recebimentos}
 
-A função \texttt{nearestNeighborSort} reordena as paradas já selecionadas por urgência, minimizando a distância total percorrida:
+A função \texttt{nearestNeighborSort} reordena as paradas já selecionadas por urgência, partindo da localização GPS atual do vendedor para minimizar a distância total percorrida:
 
 \begin{verbatim}
-function nearestNeighborSort(stops: RouteStop[]): RouteStop[] {
+function nearestNeighborSort(
+  stops: RouteStop[],
+  originLat?: number,
+  originLon?: number,
+): RouteStop[] {
   if (stops.length < 2) return stops;
 
   const hasCoord = (s: RouteStop) =>
     s.sale.clients?.latitude != null &&
     s.sale.clients?.longitude != null;
 
-  if (!stops.some(hasCoord)) return stops;   // fallback sem coords
+  if (!stops.some(hasCoord)) return stops;
 
   const remaining = [...stops];
   const sorted: RouteStop[] = [];
 
-  // Ponto inicial: parada de maior urgência (já está na posição 0)
-  sorted.push(remaining.splice(0, 1)[0]);
+  // Ponto inicial: cliente mais próximo da posição GPS atual,
+  // ou a parada de maior urgência como fallback sem permissão GPS.
+  if (originLat != null && originLon != null) {
+    let nearestIdx  = 0;
+    let nearestDist = Infinity;
+    remaining.forEach((stop, i) => {
+      const lat = stop.sale.clients?.latitude;
+      const lon = stop.sale.clients?.longitude;
+      if (lat == null || lon == null) return;
+      const d = haversineKm(originLat, originLon, lat, lon);
+      if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
+    });
+    sorted.push(remaining.splice(nearestIdx, 1)[0]);
+  } else {
+    sorted.push(remaining.splice(0, 1)[0]);
+  }
 
   while (remaining.length > 0) {
     const last    = sorted[sorted.length - 1];
@@ -1031,17 +1208,70 @@ function nearestNeighborSort(stops: RouteStop[]): RouteStop[] {
 }
 \end{verbatim}
 
-A função \texttt{buildRoute} seleciona as paradas por urgência (Equação~\ref{eq:maxstops}) e então delega a reordenação geográfica à \texttt{nearestNeighborSort}:
+A função \texttt{buildRoute} seleciona as paradas por urgência (Equação~\ref{eq:maxstops}), recebe a localização GPS do chamador e delega a reordenação geográfica à \texttt{nearestNeighborSort}:
 
 \begin{verbatim}
-function buildRoute(sales, workHours, avgMins, targetDate) {
-  const maxStops = Math.floor((workHours * 60) / avgMins);
-  const scored   = sales.map(toRouteStop);
-  const pool     = scored.sort((a, b) => priorityOf(a) - priorityOf(b));
+export function buildRoute(
+  sales: PendingSale[],
+  workHours: number,
+  avgMins: number,
+  targetDate: Date,
+  originLat?: number,
+  originLon?: number,
+): { route: RouteStop[]; excluded: RouteStop[] } {
+  const maxStops = Math.max(1,
+    Math.floor((workHours * 60) / avgMins));
+
+  const scored = sales.map(sale => {
+    const due    = effectiveDueDate(sale);
+    const days   = getDays(due, targetDate);
+    const status = getStatus(due, targetDate);
+    const city   = sale.clients?.municipio?.nome ||
+      sale.clients?.address?.split(',')[0]?.trim() || 'Sem cidade';
+    return { sale, status, days, total: pendingTotal(sale), city };
+  });
+
+  const priorityOf = (s: RouteStop) => {
+    if (s.status === 'overdue') return -1000 + s.days;
+    if (s.status === 'today')   return 0;
+    if (s.status === 'week')    return s.days;
+    return 100 + s.days;
+  };
+
+  const pool     = [...scored].sort(
+    (a, b) => priorityOf(a) - priorityOf(b));
   const selected = pool.splice(0, maxStops);
-  const route    = nearestNeighborSort(selected);
+  const route    = nearestNeighborSort(selected, originLat, originLon);
+
   return { route, excluded: pool };
 }
+\end{verbatim}
+
+A localização GPS é obtida no componente \texttt{RotaRecebimento.tsx} antes de chamar \texttt{buildRoute}:
+
+\begin{verbatim}
+const generate = async () => {
+  // ...validações...
+  let originLat: number | undefined;
+  let originLon: number | undefined;
+
+  const { status } =
+    await Location.requestForegroundPermissionsAsync();
+  if (status === 'granted') {
+    const pos = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+    originLat = pos.coords.latitude;
+    originLon = pos.coords.longitude;
+  }
+
+  const sales = await recebimentosService.getPending();
+  const { route: r, excluded: ex } =
+    buildRoute(sales, hours, mins, targetDate, originLat, originLon);
+  setRoute(r);
+  setExcluded(ex);
+  setMode('swipe');
+};
 \end{verbatim}
 
 \end{apendicesenv}
