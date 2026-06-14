@@ -33,12 +33,11 @@ export default function Menu() {
     .map((w: string) => w[0].toUpperCase()).join('') || email.slice(0, 2).toUpperCase();
 
   const navigate = (screen: string) => {
-    navigation.navigate('App' as never, { screen } as never);
+    navigation.navigate(screen as never);
   };
 
   const goToAndClose = (screen: string) => {
-    navigation.goBack();
-    setTimeout(() => navigate(screen), 50);
+    navigation.navigate(screen as never);
   };
 
   const syncCfg    = SYNC_STATUS_CONFIG[status];

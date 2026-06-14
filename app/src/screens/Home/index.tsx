@@ -259,19 +259,19 @@ export function Home() {
                     key={col}
                     className="flex-1 m-[2px] h-[52px] items-center justify-start pt-1.5 rounded-[10px]"
                     style={[
-                      isSelected && hasPayments
+                      isSelected
                         ? { backgroundColor: '#3C096C' }
                         : isToday
                         ? { backgroundColor: '#E1DAE8' }
                         : undefined,
                     ]}
                     onPress={() => setSelectedKey(key === selectedKey ? null : key)}
-                    activeOpacity={hasPayments ? 0.7 : 1}
+                    activeOpacity={0.7}
                   >
                     <Text style={{
                       fontSize: 13,
                       fontWeight: isToday || isSelected ? '800' : '500',
-                      color: isSelected && hasPayments
+                      color: isSelected
                         ? '#fff'
                         : isToday
                         ? '#3C096C'
@@ -282,7 +282,7 @@ export function Home() {
                       {day.getDate()}
                     </Text>
                     {hasPayments && (
-                      <View style={{ opacity: isSelected ? 0.9 : 1 }}>
+                      <View style={{ opacity: isSelected ? 0.8 : 1 }}>
                         <PaymentDots payments={payments} />
                       </View>
                     )}

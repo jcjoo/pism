@@ -134,6 +134,12 @@ function InstallmentModal({ sale, onClose, onConfirm, saving }: InstallmentModal
             <Text className="text-[12px] text-primary mt-0.5">
               {installmentCount(sale)}x · Total da venda: {renderPrice(saleTotal(sale))}
             </Text>
+            {!!sale.observation && (
+              <View className="flex-row items-start gap-1.5 mt-2 bg-white/70 rounded-[8px] px-3 py-2">
+                <Feather name="message-square" size={13} color="#5A189A" style={{ marginTop: 1 }} />
+                <Text className="text-[13px] text-primary-dark italic flex-1">{sale.observation}</Text>
+              </View>
+            )}
           </View>
 
           <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
@@ -597,6 +603,14 @@ function RecebimentoManual() {
                     {item.sale_items.length} {item.sale_items.length === 1 ? 'item' : 'itens'}
                   </Text>
                 </View>
+                {!!item.observation && (
+                  <View className="flex-row items-center gap-1 mt-1.5">
+                    <Feather name="message-square" size={10} color="#8B5A96" />
+                    <Text className="text-[11px] text-primary italic flex-1" numberOfLines={1}>
+                      {item.observation}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           }}
@@ -626,6 +640,12 @@ function RecebimentoManual() {
                       <Text className="text-[13px] text-primary mt-0.5">
                         {selected.clients.municipio.nome} – {selected.clients.municipio.uf}
                       </Text>
+                    )}
+                    {!!selected.observation && (
+                      <View className="flex-row items-start gap-1.5 mt-2 bg-white/70 rounded-[8px] px-3 py-2">
+                        <Feather name="message-square" size={13} color="#5A189A" style={{ marginTop: 1 }} />
+                        <Text className="text-[13px] text-primary-dark italic flex-1">{selected.observation}</Text>
+                      </View>
                     )}
                   </View>
 
@@ -903,6 +923,13 @@ const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
           <Text className="text-xs text-primary text-center mb-4">
             {isInst ? `Próx. parcela: ${formatDate(effectiveDueDate(stop.sale))}` : `Vencimento: ${formatDate(stop.sale.dueDate)}`}
           </Text>
+
+          {!!stop.sale.observation && (
+            <View className="flex-row items-start gap-2 bg-white/60 rounded-[10px] px-3 py-2.5 mb-3 mx-4">
+              <Feather name="message-square" size={14} color="#5A189A" style={{ marginTop: 1 }} />
+              <Text className="text-[13px] text-primary-dark italic flex-1">{stop.sale.observation}</Text>
+            </View>
+          )}
 
           <View className="mt-2 px-3.5 py-1.5 rounded-full" style={{ backgroundColor: cfg.color }}>
             <Text className="text-xs font-bold text-white tracking-wide">

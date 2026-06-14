@@ -119,35 +119,6 @@ function AppTabs() {
         }}
       />
 
-      <Tab.Screen
-        name="Clients"
-        component={Clients}
-        options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
-      />
-
-      <Tab.Screen
-        name="Products"
-        component={Products}
-        options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
-      />
-
-      <Tab.Screen
-        name="Conta"
-        component={Conta}
-        options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
-      />
-
-      <Tab.Screen
-        name="Relatorios"
-        component={Relatorios}
-        options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
-      />
-
-      <Tab.Screen
-        name="Regioes"
-        component={Regioes}
-        options={{ headerShown: false, tabBarItemStyle: { display: "none" } }}
-      />
     </Tab.Navigator>
   );
 }
@@ -176,6 +147,11 @@ export function Navigation() {
               component={Menu}
               options={{ presentation: "modal", animation: "slide_from_right" }}
             />
+            <Stack.Screen name="Clients" component={Clients} />
+            <Stack.Screen name="Products" component={Products} />
+            <Stack.Screen name="Regioes" component={Regioes} />
+            <Stack.Screen name="Relatorios" component={Relatorios} />
+            <Stack.Screen name="Conta" component={Conta} />
           </>
         )}
       </Stack.Navigator>

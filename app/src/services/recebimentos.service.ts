@@ -16,6 +16,7 @@ export interface PendingSale {
   payment: string;
   installments: number | null;
   received_at: string | null;
+  observation: string | null;
   clients: {
     id: string;
     name: string;
@@ -41,6 +42,7 @@ const QUERY = `
   payment,
   installments,
   received_at,
+  observation,
   clients (id, name, address, cep, latitude, longitude, municipio (nome, uf)),
   sale_items (id, quantity, price, products (name)),
   sale_installments (id, installment_number, due_date, amount, received_at)

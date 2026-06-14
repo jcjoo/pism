@@ -252,6 +252,7 @@ export type Database = {
           dueDate: string
           id: string
           installments: number | null
+          observation: string | null
           payment: Database["public"]["Enums"]["SalePayment"]
           received_amount: number | null
           received_at: string | null
@@ -263,6 +264,7 @@ export type Database = {
           dueDate: string
           id?: string
           installments?: number | null
+          observation?: string | null
           payment?: Database["public"]["Enums"]["SalePayment"]
           received_amount?: number | null
           received_at?: string | null
@@ -274,6 +276,7 @@ export type Database = {
           dueDate?: string
           id?: string
           installments?: number | null
+          observation?: string | null
           payment?: Database["public"]["Enums"]["SalePayment"]
           received_amount?: number | null
           received_at?: string | null

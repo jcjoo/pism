@@ -104,6 +104,7 @@ export function NewSale() {
           dueDate: dueDate.toISOString(),
           payment: isCash ? 'cash' : 'installments',
           installments: isCash ? null : parseInt(paymentMode.replace('x', '')),
+          observation: observation.trim() || null,
           user_id: userId,
         },
         cart.map(item => ({
@@ -262,7 +263,7 @@ export function NewSale() {
               />
               <View className="w-2" />
               <Button
-                title={loading ? 'Registrando...' : '+Venda'}
+                title={loading ? 'Registrando...' : 'Registrar Venda'}
                 variant="secondary"
                 className="flex-1"
                 onPress={handleRegisterSale}

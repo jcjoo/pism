@@ -146,11 +146,14 @@ function Loading() {
 
 // ── Relatório 1: Produto mais vendido ─────────────────────────────────────────
 
+type RankMode = 'qty' | 'revenue';
+
 function ProdutoMaisVendido({ onBack }: { onBack: () => void }) {
   const toast = useToast();
   const [period, setPeriod] = useState<PeriodFilter>('30d');
   const [data, setData] = useState<ProdutoRanking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rankMode, setRankMode] = useState<RankMode>('qty');
 
   const load = useCallback(async (p: PeriodFilter) => {
     setLoading(true);
@@ -161,27 +164,68 @@ function ProdutoMaisVendido({ onBack }: { onBack: () => void }) {
 
   useEffect(() => { load(period); }, [period]);
 
-  const maxQty = data[0]?.total_qty ?? 1;
+  const sorted = [...data].sort((a, b) => {
+    const primary = rankMode === 'qty'
+      ? b.total_qty - a.total_qty
+      : b.total_revenue - a.total_revenue;
+    if (primary !== 0) return primary;
+    return rankMode === 'qty'
+      ? b.total_revenue - a.total_revenue
+      : b.total_qty - a.total_qty;
+  });
+
+  const maxPrimary = rankMode === 'qty'
+    ? (sorted[0]?.total_qty ?? 1)
+    : (sorted[0]?.total_revenue ?? 1);
 
   return (
     <KeyboardAvoidingView className="screen" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <PageHeader title="Produto mais vendido" onBack={onBack} />
         <PeriodChips value={period} onChange={p => setPeriod(p)} />
+
+        {/* Toggle de critério */}
+        <View style={{ flexDirection: 'row', marginHorizontal: 20, marginBottom: 12, backgroundColor: '#EAE3F0', borderRadius: 12, padding: 4 }}>
+          <TouchableOpacity
+            onPress={() => setRankMode('qty')}
+            style={{
+              flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center',
+              backgroundColor: rankMode === 'qty' ? '#3C096C' : 'transparent',
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '700', color: rankMode === 'qty' ? '#fff' : '#5A189A' }}>
+              Unidades
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setRankMode('revenue')}
+            style={{
+              flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center',
+              backgroundColor: rankMode === 'revenue' ? '#3C096C' : 'transparent',
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '700', color: rankMode === 'revenue' ? '#fff' : '#5A189A' }}>
+              Valor (R$)
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View className="px-5 pb-8">
-          {loading ? <Loading /> : data.length === 0 ? (
+          {loading ? <Loading /> : sorted.length === 0 ? (
             <EmptyState icon="bar-chart-2" text="Nenhuma venda encontrada neste período." />
           ) : (
             <>
               <TopCard
-                rank={0} title={data[0].name}
+                rank={0} title={sorted[0].name}
                 stats={[
-                  { label: 'UNIDADES', value: String(data[0].total_qty) },
-                  { label: 'RECEITA',  value: R$(data[0].total_revenue)  },
+                  { label: 'UNIDADES', value: String(sorted[0].total_qty) },
+                  { label: 'RECEITA',  value: R$(sorted[0].total_revenue)  },
                 ]}
               />
-              {data.slice(1).map((item, i) => {
+              {sorted.slice(1).map((item, i) => {
                 const c = RANK_COLORS[i + 1] ?? RANK_DEFAULT;
+                const primaryVal = rankMode === 'qty' ? item.total_qty : item.total_revenue;
+                const secondaryLabel = rankMode === 'qty' ? R$(item.total_revenue) : `${item.total_qty} un`;
                 return (
                   <View key={item.product_id} style={{
                     backgroundColor: '#fff', borderRadius: 14, padding: 14,
@@ -193,12 +237,12 @@ function ProdutoMaisVendido({ onBack }: { onBack: () => void }) {
                         {item.name}
                       </Text>
                       <Text style={{ fontSize: 14, fontWeight: '700', color: '#5A189A' }}>
-                        {item.total_qty} un
+                        {rankMode === 'qty' ? `${item.total_qty} un` : R$(item.total_revenue)}
                       </Text>
                     </View>
-                    <PropBar ratio={item.total_qty / maxQty} color={c.badge} />
+                    <PropBar ratio={primaryVal / maxPrimary} color={c.badge} />
                     <Text style={{ fontSize: 12, color: '#8B5A96', textAlign: 'right' }}>
-                      {R$(item.total_revenue)}
+                      {secondaryLabel}
                     </Text>
                   </View>
                 );

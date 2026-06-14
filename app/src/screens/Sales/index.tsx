@@ -71,6 +71,7 @@ export function Sales() {
   const [editCart,        setEditCart]        = useState<any[]>([]);
   const [editDueDate,     setEditDueDate]     = useState<Date | null>(new Date());
   const [editPaymentMode, setEditPaymentMode] = useState('À vista');
+  const [editObservation, setEditObservation] = useState('');
 
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [receiptDate,         setReceiptDate]         = useState(new Date());
@@ -146,6 +147,7 @@ export function Sales() {
     })));
     setEditDueDate(new Date(selectedSale.dueDate));
     setEditPaymentMode(selectedSale.payment === 'cash' ? 'À vista' : `${selectedSale.installments}x`);
+    setEditObservation(selectedSale.observation ?? '');
     setStep('edit');
   };
 
@@ -412,6 +414,13 @@ export function Sales() {
                 <Text className="text-primary text-xs mt-4">Data compra: {formatDate(selectedSale.created_at)}</Text>
                 <Text className="text-primary text-xs mt-1">Vencimento: {formatDate(selectedSale.dueDate)}</Text>
 
+                {selectedSale.observation ? (
+                  <View className="w-full mt-4 p-3 rounded-[10px] bg-white border border-light-dark">
+                    <Text className="text-[10px] font-bold text-primary uppercase tracking-wide mb-1">Observação</Text>
+                    <Text className="text-sm text-primary-dark">{selectedSale.observation}</Text>
+                  </View>
+                ) : null}
+
                 <View
                   className="w-full mt-5 p-3.5 rounded-[10px] border"
                   style={{ backgroundColor: cfg.bg, borderColor: cfg.color }}
@@ -517,7 +526,13 @@ export function Sales() {
               <QuantitySelector label="Pagamento" displayText={editPaymentMode} value={0} onChange={switchPayment} />
             </View>
 
-            <Input placeholder="Observação..." multiline style={{ minHeight: 64, marginTop: 4 }} />
+            <Input
+              placeholder="Observação (opcional)..."
+              value={editObservation}
+              onChangeText={setEditObservation}
+              multiline
+              style={{ minHeight: 64, marginTop: 4 }}
+            />
 
             <View className="flex-row items-center my-1 mt-2">
               <Button title="Cancelar" variant="primary-dark" className="flex-1" onPress={() => setStep('details')} />
