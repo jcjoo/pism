@@ -63,14 +63,16 @@ export function AddCidadeModal({ visible, estados, onClose, onSaved }: AddCidade
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <TouchableOpacity
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }}
           activeOpacity={1}
           onPress={handleClose}
         />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={{
+        <View style={{
             backgroundColor: '#F8F5FC', borderTopLeftRadius: 24, borderTopRightRadius: 24,
             padding: 24, paddingBottom: 40,
           }}>
@@ -169,9 +171,8 @@ export function AddCidadeModal({ visible, estados, onClose, onSaved }: AddCidade
                 </View>
               </>
             )}
-          </View>
-        </KeyboardAvoidingView>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
