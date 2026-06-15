@@ -56,6 +56,7 @@
 \usepackage{grffile}			% Nomes de arquivo com espaços e caracteres especiais
 \usepackage{microtype} 			% para melhorias de justificação
 \usepackage{amsmath}			% Fórmulas matemáticas
+\usepackage[section]{placeins}	% Impede que floats (figuras/tabelas) ultrapassem a seção atual
 % ---
 
 % ---
@@ -92,14 +93,14 @@
 % Informações de dados para CAPA e FOLHA DE ROSTO
 % ---
 \titulo{SalesPro: Aplicativo Mobile para Apoio a Vendas Porta a Porta}
-\autor{Wilthon \and João Vitor Augusto Fernandes \and Alan}
+\autor{Alan Chaves Vernek \and João Vitor Augusto Fernandes \and Whilthon Miranda Frota Duarte}
 \local{Brasil}
 \data{2025}
-\orientador{[Nome do Professor]}
+\orientador{Daniel Rocha Gualberto}
 \instituicao{%
-  [Nome da Instituição]
+  Centro Universitário Católica do Leste de Minas Gerais
   \par
-  [Nome do Curso]}
+  Engenharia de Software}
 \tipotrabalho{Relatório de Projeto Integrador}
 \preambulo{Relatório técnico do projeto SalesPro, aplicativo mobile desenvolvido para auxiliar autônomos na gestão de vendas porta a porta, contemplando cadastro de clientes, produtos, registro de vendas, controle de recebimentos e otimização de rotas de cobrança com base na localização GPS do vendedor.}
 % ---
@@ -371,21 +372,87 @@ O SalesPro é um aplicativo mobile que centraliza toda a gestão comercial do ve
   \item \textbf{Funcionamento offline}: cache local via AsyncStorage com fila de sincronização para operações realizadas sem conexão.
 \end{itemize}
 
-\begin{figure}[htb]
-  \centering
-  \begin{minipage}{0.35\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{TelaInicial}\\[4pt]
-    {\footnotesize (a) Tela inicial — dashboard}
-  \end{minipage}\qquad
-  \begin{minipage}{0.35\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{BarraDeNavegaçao}\\[4pt]
-    {\footnotesize (b) Barra de navegação inferior}
-  \end{minipage}
-  \caption{Visão geral da interface do SalesPro}
-  \label{fig:visao-geral}
-\end{figure}
+\section{Requisitos Funcionais}
+
+Os requisitos funcionais descrevem as funcionalidades que o sistema deve oferecer ao usuário.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\begin{tabular}{|p{1.5cm}|p{3.5cm}|p{7.5cm}|}
+  \hline
+  \textbf{ID} & \textbf{Nome} & \textbf{Descrição} \\
+  \hline
+  RF01 & Autenticação & O sistema deve permitir que o usuário crie uma conta e faça login com e-mail e senha, mantendo a sessão ativa entre usos. \\
+  \hline
+  RF02 & Cadastro de clientes & O sistema deve permitir criar, visualizar, editar e arquivar clientes, incluindo dados de contato, endereço completo e coordenadas geográficas. \\
+  \hline
+  RF03 & Catálogo de produtos & O sistema deve permitir criar, visualizar, editar e arquivar produtos com nome, descrição, preço unitário e quantidade em estoque. \\
+  \hline
+  RF04 & Registro de vendas & O sistema deve permitir registrar vendas com múltiplos itens, definindo forma de pagamento (à vista ou parcelado de 2x a 6x) e data de vencimento. \\
+  \hline
+  RF05 & Parcelamento automático & Para vendas parceladas, o sistema deve gerar automaticamente os registros de parcelas com valores iguais e datas de vencimento distribuídas mensalmente. \\
+  \hline
+  RF06 & Consulta e filtro de vendas & O sistema deve permitir buscar e filtrar vendas por cliente, produto, intervalo de datas e status de pagamento. \\
+  \hline
+  RF07 & Edição e exclusão de vendas & O sistema deve permitir editar os dados de uma venda existente e excluí-la mediante confirmação. \\
+  \hline
+  RF08 & Recebimento manual & O sistema deve permitir registrar o recebimento de vendas à vista e de parcelas individuais de vendas parceladas. \\
+  \hline
+  RF09 & Rota de recebimento & O sistema deve calcular uma rota otimizada de cobranças com base na localização GPS atual do vendedor, nas coordenadas dos clientes e nos parâmetros de horas disponíveis e tempo médio por parada. \\
+  \hline
+  RF10 & Interface de swipe & A rota de recebimento deve ser operada por cartões deslizáveis: arrastar para a direita registra o recebimento; arrastar para a esquerda pula a parada. \\
+  \hline
+  RF11 & Dashboard & O sistema deve exibir painel com total a receber, número de parcelas em atraso, calendário mensal de vencimentos e lista dos próximos vencimentos. \\
+  \hline
+  RF12 & Gestão de regiões & O sistema deve permitir cadastrar e excluir municípios atendidos pelo vendedor, vinculando-os aos cadastros de clientes. \\
+  \hline
+  RF13 & Relatórios analíticos & O sistema deve gerar relatórios de produtos mais vendidos, clientes que mais compram, faturamento mensal e vendas em aberto. \\
+  \hline
+  RF14 & Geocodificação automática & O sistema deve obter coordenadas geográficas automaticamente a partir do endereço do cliente via Nominatim/OpenStreetMap, com fallback para o centro do município. \\
+  \hline
+  RF15 & Funcionamento offline & O sistema deve operar sem conectividade, carregando dados do cache local e enfileirando operações de recebimento para sincronização automática ao reconectar. \\
+  \hline
+\end{tabular}
+\caption{Requisitos funcionais do SalesPro}
+\label{tab:rf}
+\end{table}
+
+\section{Requisitos Não Funcionais}
+
+Os requisitos não funcionais estabelecem critérios de qualidade, desempenho e restrições técnicas que o sistema deve satisfazer.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\begin{tabular}{|p{1.5cm}|p{3.5cm}|p{7.5cm}|}
+  \hline
+  \textbf{ID} & \textbf{Nome} & \textbf{Descrição} \\
+  \hline
+  RNF01 & Desempenho & O algoritmo de otimização de rotas deve calcular a sequência para até 50 paradas em menos de 1 segundo, sem impacto perceptível na interface. \\
+  \hline
+  RNF02 & Segurança dos dados & Os dados de cada usuário devem ser isolados no banco via políticas RLS (\texttt{user\_id = auth.uid()}), sem dependência de filtros na camada de aplicação. \\
+  \hline
+  RNF03 & Disponibilidade offline & O aplicativo deve operar completamente sem conexão à internet, com sincronização automática ao reconectar e exibição do status da fila ao usuário. \\
+  \hline
+  RNF04 & Compatibilidade & O aplicativo deve funcionar em dispositivos Android e iOS a partir de uma única base de código React Native/Expo. \\
+  \hline
+  RNF05 & Usabilidade & O fluxo principal de registro de venda (selecionar cliente, adicionar produto, confirmar) deve ser concluído em menos de 1 minuto. \\
+  \hline
+  RNF06 & Persistência de sessão & A sessão do usuário deve ser mantida entre reinicializações do aplicativo via \textit{refresh token} persistido no AsyncStorage, dispensando novo login. \\
+  \hline
+  RNF07 & Manutenibilidade & O código deve ser organizado em camadas com responsabilidades separadas — \textit{screens}, \textit{services}, \textit{components} e \textit{context} — facilitando evolução e manutenção independente. \\
+  \hline
+  RNF08 & Escalabilidade & A arquitetura RLS deve garantir isolamento total entre usuários independentemente do volume de dados, sem alterações no código da aplicação. \\
+  \hline
+  RNF09 & Rastreabilidade de tipos & Todos os tipos do banco de dados devem ser gerados automaticamente pelo Supabase CLI, garantindo consistência entre o esquema do banco e o código TypeScript. \\
+  \hline
+  RNF10 & Ausência de dependência de API paga & O funcionamento offline e a geocodificação devem utilizar apenas serviços gratuitos (Nominatim) ou processamento local, sem custos por requisição. \\
+  \hline
+\end{tabular}
+\caption{Requisitos não funcionais do SalesPro}
+\label{tab:rnf}
+\end{table}
 
 % ----------------------------------------------------------
 % Capítulo 2
@@ -474,19 +541,19 @@ O banco de dados é composto pelas seguintes tabelas:
   \hline
   \textbf{Tabela} & \textbf{Descrição} \\
   \hline
-  \texttt{clients} & Cadastro de clientes: nome, CPF, telefone, e-mail, endereço, CEP, latitude, longitude, \texttt{municipio\_id}, \texttt{user\_id} \\
+  \texttt{clients} & Cadastro de clientes: nome, CPF, telefone, e-mail, endereço, CEP, latitude, longitude, flag de arquivamento (\texttt{is\_archived}), \texttt{municipio\_id}, \texttt{user\_id} \\
   \hline
-  \texttt{products} & Catálogo de produtos: nome, descrição, preço, estoque, flag de arquivamento, \texttt{user\_id} \\
+  \texttt{products} & Catálogo de produtos: nome, descrição, preço, estoque, flag de arquivamento (\texttt{is\_archived}), \texttt{user\_id} \\
   \hline
-  \texttt{sales} & Cabeçalho da venda: \texttt{clientId}, data de vencimento (\texttt{dueDate}), forma de pagamento (\texttt{payment}), número de parcelas, data/valor de recebimento, \texttt{user\_id} \\
+  \texttt{sales} & Cabeçalho da venda: \texttt{clientId}, data de vencimento (\texttt{dueDate}), forma de pagamento (\texttt{payment}: \textit{cash} ou \textit{installments}), número de parcelas, data/valor de recebimento, observação (\texttt{observation}), \texttt{user\_id} \\
   \hline
-  \texttt{sale\_items} & Itens da venda: \texttt{sale\_id}, \texttt{product\_id}, quantidade, preço unitário \\
+  \texttt{sale\_items} & Itens da venda: \texttt{sale\_id}, \texttt{product\_id}, quantidade, preço unitário, \texttt{user\_id} \\
   \hline
-  \texttt{sale\_installments} & Parcelas: \texttt{sale\_id}, número da parcela, data de vencimento, valor, data de recebimento \\
+  \texttt{sale\_installments} & Parcelas: \texttt{sale\_id}, número da parcela, data de vencimento, valor, data de recebimento, \texttt{user\_id} \\
   \hline
-  \texttt{municipio} & Municípios brasileiros: código, nome, UF \\
+  \texttt{municipio} & Municípios brasileiros: código, nome, UF, \texttt{estado\_id} \\
   \hline
-  \texttt{estado} & Estados brasileiros: código, nome, sigla, região \\
+  \texttt{estado} & Estados brasileiros: código UF (\texttt{codigouf}), nome, sigla (\texttt{uf}), região \\
   \hline
 \end{tabular}
 \caption{Tabelas do banco de dados do SalesPro}
@@ -963,6 +1030,13 @@ A navegação principal segue o padrão de \textit{bottom tab bar}, consolidado 
 
 A interface prioriza ações rápidas: o vendedor registra uma venda completa em menos de um minuto, com seletores modais para cliente e produto, carrinho com edição inline e confirmação em um único botão. A interface de swipe na rota de recebimentos foi projetada para uso em campo com uma mão, com alvos de toque amplos e feedback visual imediato.
 
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.55\textwidth]{BarraDeNavegaçao}
+  \caption{Barra de navegação inferior com as quatro abas principais do SalesPro}
+  \label{fig:nav-bar}
+\end{figure}
+
 \section{Componentes Reutilizáveis}
 
 A aplicação conta com uma biblioteca interna de componentes padronizados:
@@ -1024,16 +1098,93 @@ Os testes automatizados cobrem dois níveis:
 
 Os testes são executados com Jest e \texttt{jest-expo}, configurado para simular o ambiente React Native. O comando de execução é \texttt{npm test}.
 
-\section{Build e Distribuição}
+\section{Erros Identificados Durante os Testes}
 
-O projeto oferece dois caminhos de build via Expo:
+Durante os testes manuais do aplicativo, foram identificados erros e limitações. A primeira subseção documenta um erro pontual que foi corrigido; as subseções seguintes descrevem problemas ainda em aberto, que estão sendo investigados e representam trabalho futuro para estabilização do sistema.
+
+\subsection{Erro: Redirecionamento para \texttt{localhost:3000} no Fluxo de Reset de Senha}
+
+Ao solicitar a recuperação de senha pela tela de autenticação, o Supabase envia um e-mail com um link de redefinição. Durante os testes, ao clicar nesse link, o navegador era redirecionado para \texttt{http://localhost:3000} — um endereço inválido em dispositivos reais — em vez de abrir o aplicativo via \textit{deep link}.
+
+\begin{figure}[htb]
+  \centering
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Testes/ResetPasswordEmail}\\[4pt]
+    {\footnotesize (a) E-mail de redefinição recebido}
+  \end{minipage}\qquad
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Testes/ResetPasswordErrorLocalhost3000}\\[4pt]
+    {\footnotesize (b) Erro ao seguir o link — redireciona para \texttt{localhost:3000}}
+  \end{minipage}
+  \caption{Erro de redirecionamento no fluxo de reset de senha}
+  \label{fig:reset-error}
+\end{figure}
+
+\textbf{Causa}: o Supabase utiliza por padrão o valor configurado em \textit{Site URL} no painel de autenticação como destino do link de redefinição. Durante o desenvolvimento, esse campo estava configurado como \texttt{http://localhost:3000}, que não corresponde ao esquema de URI do aplicativo mobile.
+
+\textbf{Solução}: a URL de redirecionamento deve ser atualizada no painel do Supabase (\textit{Authentication → URL Configuration}) para o esquema de URI profundo do aplicativo (por exemplo, \texttt{salespro://reset-password}), e o app deve registrar um \textit{deep link handler} para esse esquema via \texttt{expo-linking}, capturando os parâmetros de token da URL e iniciando o fluxo de redefinição de senha.
+
+\subsection{Problema em Aberto: Funcionamento Offline Incompleto}
+
+O SalesPro foi projetado para operar sem conectividade, mas os testes revelaram que o suporte offline não está totalmente implementado. A estratégia atual funciona corretamente no cenário esperado — conexão estável durante a abertura do app, seguida de uso em campo sem rede — mas apresenta falhas quando o Supabase fica indisponível de forma inesperada durante o uso.
+
+Os problemas observados incluem:
 
 \begin{itemize}
-  \item \textbf{Expo Go}: execução imediata em dispositivo físico via QR Code, sem compilação nativa. Utilizado para desenvolvimento e demonstrações rápidas;
-  \item \textbf{EAS Build} (\textit{Expo Application Services}): serviço de build na nuvem que gera APK assinado (Android) e IPA (iOS) prontos para distribuição nas respectivas lojas ou via \textit{sideload}.
+  \item \textbf{Inicialização sem rede}: ao abrir o aplicativo sem nenhuma conexão prévia, algumas telas que dependem de dados não armazenados em cache falham com erros não tratados, em vez de exibir os dados locais disponíveis ou uma mensagem amigável de indisponibilidade;
+  \item \textbf{Supabase fora do ar}: quando o serviço Supabase se torna indisponível durante uma sessão ativa, requisições feitas pela aplicação retornam erros que nem sempre são capturados e apresentados corretamente ao usuário, podendo resultar em telas vazias ou travamentos silenciosos;
+  \item \textbf{Cobertura parcial do cache}: apenas as telas de recebimentos e clientes possuem cache local implementado via AsyncStorage. Módulos como produtos, relatórios e o dashboard não possuem fallback offline, tornando-os inacessíveis sem conexão.
 \end{itemize}
 
-Para a apresentação do projeto, o app pode ser executado diretamente via \texttt{expo start} com Expo Go, dispensando o processo de build e permitindo demonstração em tempo real no dispositivo do professor.
+\textbf{Status}: em investigação. A solução completa exige a extensão da camada de cache para todos os módulos, a padronização do tratamento de erros de rede em todos os serviços e a implementação de um estado global de conectividade que adapte o comportamento da UI antes de tentar qualquer requisição ao back-end.
+
+\subsection{Problema em Aberto: Conflitos de Merge em Múltiplos Dispositivos}
+
+O mecanismo de sincronização offline do SalesPro foi concebido para um cenário de uso individual em um único dispositivo. Quando a mesma conta é acessada em dois ou mais dispositivos e operações são realizadas offline em ambos, a sincronização posterior pode gerar inconsistências nos dados.
+
+O problema ocorre porque a fila de sincronização (\texttt{SYNC\_QUEUE}) é local a cada dispositivo e não possui nenhum mecanismo de detecção de conflitos. Ao drenar a fila, as operações são enviadas ao Supabase na ordem em que foram registradas localmente, sem comparar o estado atual do banco com o estado que o dispositivo tinha quando a operação foi criada. Isso pode resultar em:
+
+\begin{itemize}
+  \item \textbf{Sobrescrita de dados}: um recebimento registrado no dispositivo A e sincronizado pode ser sobrescrito pela sincronização posterior do dispositivo B, que enfileirou uma operação sobre o mesmo registro;
+  \item \textbf{Duplicações}: em cenários onde o mesmo recebimento é registrado manualmente nos dois dispositivos antes de qualquer sincronização, ambas as operações são enviadas ao banco sem detecção de duplicidade;
+  \item \textbf{Estado inconsistente}: após conflitos não detectados, o estado exibido em cada dispositivo pode divergir do estado real no banco, sem notificação ao usuário.
+\end{itemize}
+
+\textbf{Status}: em aberto. A resolução requer a adoção de uma estratégia de resolução de conflitos — como \textit{last-write-wins} com \textit{timestamp} de criação da operação, ou versionamento de registros com \textit{vector clocks} — que ainda não foi implementada.
+
+\subsection{Problema em Aberto: Instabilidade do Módulo de Sincronização}
+
+Decorrente dos dois problemas anteriores, o módulo de sincronização (\texttt{sync.service.ts} e \texttt{SyncContext}) encontra-se em estado instável durante o desenvolvimento desta versão do projeto. As tentativas de ampliar a cobertura offline e de tratar os conflitos de múltiplos dispositivos introduziram regressões pontuais que ainda estão sendo corrigidas.
+
+Os comportamentos instáveis observados incluem:
+
+\begin{itemize}
+  \item O auto-sync a cada 3 minutos, em algumas situações de erro de rede, entra em estado de \textit{retry} contínuo sem exibir corretamente o status de erro no menu lateral;
+  \item A contagem de operações pendentes exibida no menu pode não refletir com precisão o tamanho real da fila após sincronizações parcialmente bem-sucedidas;
+  \item Em dispositivos com versões mais antigas do AsyncStorage, a serialização da fila ocasionalmente falha de forma silenciosa, descartando operações pendentes.
+\end{itemize}
+
+\textbf{Status}: em correção ativa. O módulo de sincronização está sendo refatorado para separar com mais clareza as responsabilidades de enfileiramento, envio e tratamento de falhas, com o objetivo de estabilizar o comportamento antes de uma eventual versão de produção do aplicativo.
+
+\subsection{Problema em Aberto: Controle de Estoque Não Implementado}
+
+Durante os testes do fluxo de vendas, identificou-se que o aplicativo não realiza nenhuma verificação nem atualização do estoque dos produtos ao registrar uma venda. O campo \texttt{stock} existe na tabela \texttt{products} e é exibido na tela de gestão de produtos, mas não é consumido nem modificado pelo serviço de vendas.
+
+Os comportamentos problemáticos observados incluem:
+
+\begin{itemize}
+  \item \textbf{Ausência de validação}: é possível registrar uma venda com quantidade superior ao estoque disponível sem que o sistema emita qualquer alerta ou bloqueio;
+  \item \textbf{Estoque não decrementado}: após a confirmação de uma venda, o estoque dos produtos incluídos nos itens (\texttt{sale\_items}) não é subtraído — o valor de \texttt{stock} permanece inalterado no banco;
+  \item \textbf{Inconsistência visual}: o vendedor visualiza um estoque na tela de produtos que não reflete o que foi efetivamente comprometido pelas vendas realizadas.
+\end{itemize}
+
+\textbf{Causa}: o serviço \texttt{salesService.create} realiza apenas a inserção do cabeçalho da venda, dos itens (\texttt{sale\_items}) e, quando parcelada, das parcelas (\texttt{sale\_installments}). Nenhuma etapa do fluxo executa o decremento de \texttt{stock} em \texttt{products} nem valida se a quantidade solicitada está disponível.
+
+\textbf{Solução}: a correção envolve duas etapas no serviço \texttt{salesService.create}. Primeiro, antes de inserir a venda, verificar se o estoque de cada produto é suficiente para a quantidade pedida, abortando com mensagem de erro caso contrário. Segundo, após a inserção bem-sucedida dos itens, decrementar o campo \texttt{stock} de cada produto pela respectiva quantidade vendida, preferencialmente via uma chamada atômica ou dentro de uma transação para evitar inconsistências em caso de falha parcial.
+
+\textbf{Status}: em aberto. A funcionalidade de controle de estoque não foi implementada nesta versão e constitui um dos principais pontos de evolução para versões futuras do aplicativo.
 
 % ----------------------------------------------------------
 % Conclusão
@@ -1044,7 +1195,7 @@ Para a apresentação do projeto, o app pode ser executado diretamente via \text
 
 O SalesPro entrega uma solução completa e funcional para o autônomo de vendas porta a porta. A combinação de React Native com Expo garantiu uma base de código única para Android e iOS, enquanto o Supabase eliminou a necessidade de desenvolver infraestrutura de back-end própria, permitindo que o time concentrasse esforços na experiência do usuário e nas regras de negócio.
 
-As principais entregas do projeto foram: autenticação segura com sessões persistidas e toggle show/hide de senha, cadastro completo de clientes com geocodificação automática via Nominatim, catálogo de produtos com arquivamento, fluxo de venda com carrinho e parcelamento automático, calendário de vencimentos com rastreamento visual de status, controle de recebimentos em modo manual e em modo de rota com interface de swipe, relatórios analíticos com filtros de período e otimização de rotas de cobrança com heurística do vizinho mais próximo partindo da localização GPS real do vendedor, com operação completa offline via AsyncStorage e fila de sincronização.
+As principais entregas do projeto foram: autenticação segura com sessões persistidas e toggle show/hide de senha, cadastro completo de clientes com geocodificação automática via Nominatim, catálogo de produtos com arquivamento, fluxo de venda com carrinho e parcelamento automático, calendário de vencimentos com rastreamento visual de status, controle de recebimentos em modo manual e em modo de rota com interface de swipe, relatórios analíticos com filtros de período e otimização de rotas de cobrança com heurística do vizinho mais próximo partindo da localização GPS real do vendedor. O suporte offline foi parcialmente implementado via AsyncStorage e fila de sincronização, cobrindo o cenário principal de uso em campo, mas ainda apresenta limitações em situações de indisponibilidade inesperada do servidor e uso simultâneo em múltiplos dispositivos — pontos identificados nos testes e que constituem o principal trabalho em aberto para versões futuras do aplicativo.
 
 A escolha por um algoritmo de otimização local em vez de APIs de roteamento externas reflete a realidade operacional dos usuários do sistema: vendedores em campo com conectividade instável que precisam de uma ferramenta confiável independentemente do sinal. O uso da posição GPS do dispositivo como ponto de partida da rota garante que a sequência calculada reflita a situação real do vendedor no momento da saída, evitando que a ordenação por urgência financeira sobreponha a eficiência geográfica. Essa decisão de arquitetura demonstra que é possível oferecer funcionalidade inteligente em aplicativos mobile sem sacrificar a robustez offline.
 
@@ -1054,10 +1205,6 @@ A escolha por um algoritmo de otimização local em vez de APIs de roteamento ex
 \postextual
 % ----------------------------------------------------------
 
-% ----------------------------------------------------------
-% Referências bibliográficas
-% ----------------------------------------------------------
-\bibliography{abntex2-modelo-references}
 
 % ----------------------------------------------------------
 % Apêndices
@@ -1075,7 +1222,7 @@ O diagrama a seguir representa as relações entre as tabelas do banco de dados 
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{5cm}\rule{0.9\textwidth}{0pt}}
+  \includegraphics[width=0.9\textwidth]{DiagramaBanco}
   \caption{Diagrama Entidade-Relacionamento do SalesPro}
   \label{fig:er}
 \end{figure}
@@ -1293,7 +1440,7 @@ As políticas RLS são habilitadas em todas as tabelas de dados de usuário. Cad
 
 \begin{figure}[htb]
   \centering
-  \fbox{\rule{0pt}{4cm}\rule{0.9\textwidth}{0pt}}
+  \includegraphics[width=0.9\textwidth]{PolicesSupabase}
   \caption{Painel do Supabase — tabelas e políticas RLS configuradas}
   \label{fig:supabase-panel}
 \end{figure}
