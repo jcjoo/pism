@@ -6,6 +6,8 @@ import palette from './palette';
 // awkwardly in plain JS/TS expressions.
 type Shade = string | { light?: string; DEFAULT?: string; dark?: string };
 
+function withMain(shade: string): { main: string };
+function withMain<T extends { DEFAULT?: string }>(shade: T): Omit<T, 'DEFAULT'> & { main: T['DEFAULT'] };
 function withMain(shade: Shade) {
   if (typeof shade === 'string') return { main: shade };
   const { DEFAULT, ...rest } = shade;
