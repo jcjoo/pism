@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Input, Button, QuantitySelector, Select, FormScrollView, useToast } from '@/components';
 import { Feather } from '@expo/vector-icons';
@@ -34,15 +35,17 @@ export function NewSale() {
   const [observation, setObservation] = useState('');
   const [loading, setLoading]         = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setClientsList(await clientsService.getAll());
-        setProductsList(await productsService.getAll());
-      } catch (error) { console.error('Error loading data:', error); }
-    };
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const loadData = async () => {
+        try {
+          setClientsList(await clientsService.getAll());
+          setProductsList(await productsService.getAll());
+        } catch (error) { console.error('Error loading data:', error); }
+      };
+      loadData();
+    }, [])
+  );
 
   const selectItem = (item: any) => {
     if (modalType === 'cliente') {

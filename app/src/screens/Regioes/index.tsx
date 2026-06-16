@@ -7,8 +7,10 @@ import { Feather } from '@expo/vector-icons';
 import { Button, useToast } from '@/components';
 import { enderecoService, Estado, Municipio } from '@/services/endereco.service';
 import { supabase } from '@/services/supabase';
+import { storageService, STORAGE_KEYS } from '@/services/storage.service';
 import { useNavigation } from '@react-navigation/native';
 import { AddCidadeModal } from './AddCidadeModal';
+import { SelectEstadosModal } from './SelectEstadosModal';
 
 async function clientCountForMunicipio(id: number): Promise<number> {
   const { count } = await supabase
@@ -26,16 +28,20 @@ export function Regioes() {
   const [loading, setLoading]       = useState(true);
   const [showAdd, setShowAdd]       = useState(false);
   const [deleting, setDeleting]     = useState<number | null>(null);
+  const [showSelectEstados, setShowSelectEstados] = useState(false);
+  const [estadosFilter, setEstadosFilter] = useState<string[] | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [ms, es] = await Promise.all([
+      const [ms, es, filter] = await Promise.all([
         enderecoService.getAllMunicipios(),
         enderecoService.getAllEstado(),
+        storageService.getItem<string[]>(STORAGE_KEYS.REGIOES_ESTADOS_FILTER),
       ]);
       setMunicipios(ms);
       setEstados(es);
+      setEstadosFilter(filter);
     } catch {
       toast.show('Erro ao carregar cidades.', { type: 'error' });
     } finally {
@@ -44,6 +50,12 @@ export function Regioes() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleSaveEstadosFilter = async (ufs: string[]) => {
+    setEstadosFilter(ufs);
+    setShowSelectEstados(false);
+    await storageService.setItem(STORAGE_KEYS.REGIOES_ESTADOS_FILTER, ufs);
+  };
 
   const grouped = useMemo(() => {
     const map = new Map<string, { estado: Estado | undefined; cidades: Municipio[] }>();
@@ -57,9 +69,10 @@ export function Regioes() {
       map.get(m.uf)!.cidades.push(m);
     });
     return Array.from(map.entries())
+      .filter(([uf]) => estadosFilter === null || estadosFilter.includes(uf))
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([uf, data]) => ({ uf, ...data }));
-  }, [municipios, estados]);
+  }, [municipios, estados, estadosFilter]);
 
   const handleDelete = async (m: Municipio) => {
     setDeleting(m.id);
@@ -98,13 +111,24 @@ export function Regioes() {
           <Text className="page-title">Regiões</Text>
         </View>
 
-        <Button
-          title="Nova Cidade"
-          variant="secondary"
-          className="mx-5 mb-5"
-          onPress={() => setShowAdd(true)}
-          icon={<Feather name="map-pin" size={20} color="#EAE3F0" />}
-        />
+        <View className="flex-row mx-5 mb-5" style={{ gap: 10 }}>
+          <Button
+            title="Nova Cidade"
+            variant="secondary"
+            className="flex-1"
+            onPress={() => setShowAdd(true)}
+            icon={<Feather name="map-pin" size={20} color="#EAE3F0" />}
+          />
+          <TouchableOpacity
+            onPress={() => setShowSelectEstados(true)}
+            style={{
+              width: 48, alignItems: 'center', justifyContent: 'center',
+              borderRadius: 12, backgroundColor: '#EAE3F0',
+            }}
+          >
+            <Feather name="filter" size={20} color="#5A189A" />
+          </TouchableOpacity>
+        </View>
 
         {loading ? (
           <View style={{ paddingTop: 60, alignItems: 'center' }}>
@@ -118,6 +142,16 @@ export function Regioes() {
             </Text>
             <Text style={{ fontSize: 13, color: '#B09DC0', marginTop: 6, textAlign: 'center' }}>
               Adicione as cidades onde você realiza suas vendas.
+            </Text>
+          </View>
+        ) : grouped.length === 0 ? (
+          <View style={{ paddingTop: 60, alignItems: 'center', paddingHorizontal: 32 }}>
+            <Feather name="filter" size={52} color="#C4B5D0" />
+            <Text style={{ fontSize: 16, fontWeight: '600', color: '#8B5A96', marginTop: 16, textAlign: 'center' }}>
+              Nenhum estado selecionado
+            </Text>
+            <Text style={{ fontSize: 13, color: '#B09DC0', marginTop: 6, textAlign: 'center' }}>
+              Toque no filtro para escolher quais estados aparecem.
             </Text>
           </View>
         ) : (
@@ -165,6 +199,14 @@ export function Regioes() {
         estados={estados}
         onClose={() => setShowAdd(false)}
         onSaved={handleSaved}
+      />
+
+      <SelectEstadosModal
+        visible={showSelectEstados}
+        estados={estados}
+        selected={estadosFilter ?? estados.map(e => e.uf)}
+        onClose={() => setShowSelectEstados(false)}
+        onSave={handleSaveEstadosFilter}
       />
     </KeyboardAvoidingView>
   );

@@ -12,7 +12,7 @@ const options: any = {
   },
 };
 
-const isServer = typeof Bun !== 'undefined' || typeof process !== 'undefined' && !process.release?.name;
+const isServer = typeof Bun !== 'undefined';
 
 if (!isServer) {
   const AsyncStorage = require('@react-native-async-storage/async-storage').default;

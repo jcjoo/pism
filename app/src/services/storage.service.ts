@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   SYNC_QUEUE:    '@pism/sync/queue',
   LAST_SYNC:     '@pism/sync/last_at',
   AUTO_SYNC:     '@pism/sync/auto',
+  REGIOES_ESTADOS_FILTER: '@pism/settings/regioes_estados_filter',
 } as const;
 
 export interface SyncOp {

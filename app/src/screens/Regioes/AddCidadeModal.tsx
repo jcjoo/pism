@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, FlatList,
-  TextInput, Modal, KeyboardAvoidingView, Platform,
+  TextInput, Modal, KeyboardAvoidingView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Button, useToast } from '@/components';
@@ -65,7 +65,7 @@ export function AddCidadeModal({ visible, estados, onClose, onSaved }: AddCidade
     <Modal visible={visible} transparent animationType="slide">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior="padding"
       >
         <TouchableOpacity
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }}
