@@ -1,5 +1,6 @@
 import { PendingSale } from '@/services/recebimentos.service';
 import { DueStatus, CalendarPayment } from './types';
+import { colors } from '@/theme/color';
 
 export const renderPrice = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
 
@@ -18,9 +19,9 @@ export const getDayStatus = (dateKey: string): DueStatus => {
 };
 
 export const STATUS_COLOR: Record<DueStatus, string> = {
-  overdue: '#DF1515',
-  today:   '#FF8C00',
-  future:  '#5A189A',
+  overdue: colors.danger.main,
+  today:   colors.warning.main,
+  future:  colors.primary.main,
 };
 
 export const STATUS_LABEL: Record<DueStatus, string> = {

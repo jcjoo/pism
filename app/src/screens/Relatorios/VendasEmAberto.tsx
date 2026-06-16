@@ -4,6 +4,7 @@ import { relatoriosService, VendaAberta, DueStatus } from '@/services/relatorios
 import { useToast } from '@/components';
 import { R$, fmtDate, DUE_CONFIG } from './helpers';
 import { PageHeader, EmptyState, Loading } from './ui';
+import { colors } from '@/theme/color';
 
 const STATUS_ORDER: DueStatus[] = ['overdue', 'today', 'soon', 'future'];
 
@@ -32,13 +33,13 @@ export function VendasEmAberto({ onBack }: { onBack: () => void }) {
           {loading ? <Loading /> : (
             <>
               <View style={{
-                backgroundColor: '#3C096C', borderRadius: 16, padding: 20,
+                backgroundColor: colors.primary.dark, borderRadius: 16, padding: 20,
                 marginTop: 8, marginBottom: 16,
               }}>
                 <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '700', marginBottom: 4 }}>
                   TOTAL EM ABERTO
                 </Text>
-                <Text style={{ fontSize: 30, fontWeight: '800', color: '#fff' }}>{R$(total)}</Text>
+                <Text style={{ fontSize: 30, fontWeight: '800', color: 'white' }}>{R$(total)}</Text>
                 <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
                   {data.length} venda{data.length !== 1 ? 's' : ''}
                 </Text>
@@ -78,20 +79,20 @@ export function VendasEmAberto({ onBack }: { onBack: () => void }) {
                       </Text>
                       {group.map(venda => (
                         <View key={venda.id} style={{
-                          backgroundColor: '#fff', borderRadius: 12, padding: 14,
+                          backgroundColor: 'white', borderRadius: 12, padding: 14,
                           borderWidth: 1, borderLeftWidth: 3,
-                          borderColor: '#E1DAE8', borderLeftColor: cfg.color,
+                          borderColor: colors.light.dark, borderLeftColor: cfg.color,
                           marginBottom: 8,
                         }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={{ flex: 1, fontSize: 14, fontWeight: '600', color: '#3C096C' }} numberOfLines={1}>
+                            <Text style={{ flex: 1, fontSize: 14, fontWeight: '600', color: colors.primary.dark }} numberOfLines={1}>
                               {venda.client_name}
                             </Text>
                             <Text style={{ fontSize: 15, fontWeight: '700', color: cfg.color }}>
                               {R$(venda.total)}
                             </Text>
                           </View>
-                          <Text style={{ fontSize: 12, color: '#8B5A96', marginTop: 4 }}>
+                          <Text style={{ fontSize: 12, color: colors.primary.light, marginTop: 4 }}>
                             Vence em {fmtDate(venda.due_date)}
                           </Text>
                         </View>

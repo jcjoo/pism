@@ -5,6 +5,7 @@ import { useToast } from '@/components';
 import { R$ } from './helpers';
 import { RANK_COLORS, RANK_DEFAULT } from './helpers';
 import { PageHeader, PeriodChips, EmptyState, RankBadge, TopCard, PropBar, Loading } from './ui';
+import { colors } from '@/theme/color';
 
 type RankMode = 'qty' | 'revenue';
 
@@ -44,15 +45,15 @@ export function ProdutoMaisVendido({ onBack }: { onBack: () => void }) {
         <PageHeader title="Produto mais vendido" onBack={onBack} />
         <PeriodChips value={period} onChange={p => setPeriod(p)} />
 
-        <View style={{ flexDirection: 'row', marginHorizontal: 20, marginBottom: 12, backgroundColor: '#EAE3F0', borderRadius: 12, padding: 4 }}>
+        <View style={{ flexDirection: 'row', marginHorizontal: 20, marginBottom: 12, backgroundColor: colors.light.main, borderRadius: 12, padding: 4 }}>
           <TouchableOpacity
             onPress={() => setRankMode('qty')}
             style={{
               flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center',
-              backgroundColor: rankMode === 'qty' ? '#3C096C' : 'transparent',
+              backgroundColor: rankMode === 'qty' ? colors.primary.dark : 'transparent',
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: '700', color: rankMode === 'qty' ? '#fff' : '#5A189A' }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: rankMode === 'qty' ? 'white' : colors.primary.main }}>
               Unidades
             </Text>
           </TouchableOpacity>
@@ -60,10 +61,10 @@ export function ProdutoMaisVendido({ onBack }: { onBack: () => void }) {
             onPress={() => setRankMode('revenue')}
             style={{
               flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center',
-              backgroundColor: rankMode === 'revenue' ? '#3C096C' : 'transparent',
+              backgroundColor: rankMode === 'revenue' ? colors.primary.dark : 'transparent',
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: '700', color: rankMode === 'revenue' ? '#fff' : '#5A189A' }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: rankMode === 'revenue' ? 'white' : colors.primary.main }}>
               Valor (R$)
             </Text>
           </TouchableOpacity>
@@ -87,20 +88,20 @@ export function ProdutoMaisVendido({ onBack }: { onBack: () => void }) {
                 const secondaryLabel = rankMode === 'qty' ? R$(item.total_revenue) : `${item.total_qty} un`;
                 return (
                   <View key={item.product_id} style={{
-                    backgroundColor: '#fff', borderRadius: 14, padding: 14,
-                    borderWidth: 1, borderColor: '#E1DAE8', marginBottom: 10,
+                    backgroundColor: 'white', borderRadius: 14, padding: 14,
+                    borderWidth: 1, borderColor: colors.light.dark, marginBottom: 10,
                   }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <RankBadge rank={i + 1} />
-                      <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: '#3C096C' }} numberOfLines={1}>
+                      <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: colors.primary.dark }} numberOfLines={1}>
                         {item.name}
                       </Text>
-                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#5A189A' }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: colors.primary.main }}>
                         {rankMode === 'qty' ? `${item.total_qty} un` : R$(item.total_revenue)}
                       </Text>
                     </View>
                     <PropBar ratio={primaryVal / maxPrimary} color={c.badge} />
-                    <Text style={{ fontSize: 12, color: '#8B5A96', textAlign: 'right' }}>
+                    <Text style={{ fontSize: 12, color: colors.primary.light, textAlign: 'right' }}>
                       {secondaryLabel}
                     </Text>
                   </View>

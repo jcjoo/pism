@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Button } from '@/components';
 import { PendingSale } from '@/services/recebimentos.service';
+import { colors } from '@/theme/color';
 import {
   saleTotal, renderPrice, formatDate,
   installmentCount, pendingInstallments, sortedInstallments, getDays, getStatus, STATUS,
@@ -55,7 +56,7 @@ export function InstallmentModal({ sale, onClose, onConfirm, saving }: Installme
             </Text>
             {!!sale.observation && (
               <View className="flex-row items-start gap-1.5 mt-2 bg-white/70 rounded-[8px] px-3 py-2">
-                <Feather name="message-square" size={13} color="#5A189A" style={{ marginTop: 1 }} />
+                <Feather name="message-square" size={13} color={colors.primary.main} style={{ marginTop: 1 }} />
                 <Text className="text-[13px] text-primary-dark italic flex-1">{sale.observation}</Text>
               </View>
             )}
@@ -67,7 +68,7 @@ export function InstallmentModal({ sale, onClose, onConfirm, saving }: Installme
               const isChecked  = checkedIds.has(inst.id);
               const days       = getDays(inst.due_date);
               const st         = getStatus(inst.due_date);
-              const color      = isReceived ? '#1B8A3D' : STATUS[st].color;
+              const color      = isReceived ? colors.success.main : STATUS[st].color;
 
               return (
                 <TouchableOpacity
@@ -81,12 +82,12 @@ export function InstallmentModal({ sale, onClose, onConfirm, saving }: Installme
                   <View
                     className="w-[22px] h-[22px] rounded-[5px] border-2 items-center justify-center mr-3"
                     style={{
-                      borderColor:     isReceived ? '#1B8A3D' : isChecked ? '#3C096C' : '#C4B5D0',
-                      backgroundColor: isReceived ? '#E6F7EC' : isChecked ? '#3C096C' : 'transparent',
+                      borderColor:     isReceived ? colors.success.main : isChecked ? colors.primary.dark : '#C4B5D0',
+                      backgroundColor: isReceived ? colors.success.light : isChecked ? colors.primary.dark : 'transparent',
                     }}
                   >
                     {(isReceived || isChecked) && (
-                      <Feather name="check" size={12} color={isReceived ? '#1B8A3D' : '#fff'} />
+                      <Feather name="check" size={12} color={isReceived ? colors.success.main : 'white'} />
                     )}
                   </View>
 
@@ -112,7 +113,7 @@ export function InstallmentModal({ sale, onClose, onConfirm, saving }: Installme
                       </View>
                     )}
                     {isReceived && (
-                      <Feather name="check-circle" size={13} color="#1B8A3D" style={{ marginTop: 2 }} />
+                      <Feather name="check-circle" size={13} color={colors.success.main} style={{ marginTop: 2 }} />
                     )}
                   </View>
                 </TouchableOpacity>

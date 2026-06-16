@@ -6,6 +6,7 @@ import { recebimentosService } from '@/services/recebimentos.service';
 import { buildPaymentMap, getCalendarDays, renderPrice, todayKey } from './helpers';
 import { Calendar } from './Calendar';
 import { PaymentDayView } from './PaymentDayView';
+import { colors } from '@/theme/color';
 
 export function Home() {
   const navigation = useNavigation<any>();
@@ -66,7 +67,7 @@ export function Home() {
           A receber
         </Text>
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color="white" />
         ) : (
           <Text className="text-[32px] font-bold text-white">{renderPrice(totalPending)}</Text>
         )}
@@ -80,7 +81,7 @@ export function Home() {
             onPress={() => navigation.navigate('Rota')}
             activeOpacity={0.8}
           >
-            <Feather name="dollar-sign" size={12} color="#0E0F0C" />
+            <Feather name="dollar-sign" size={12} color={colors.dark.main} />
             <Text className="text-[12px] text-primary-dark font-bold">Ver Recebimentos</Text>
           </TouchableOpacity>
         </View>

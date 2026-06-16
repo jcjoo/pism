@@ -12,6 +12,7 @@ import {
   pendingInstallments, effectiveDueDate, pendingTotal, getDays, getStatus, STATUS,
 } from './helpers';
 import { InstallmentModal } from './InstallmentModal';
+import { colors } from '@/theme/color';
 
 export function RecebimentoManual() {
   const toast = useToast();
@@ -145,12 +146,12 @@ export function RecebimentoManual() {
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 12, paddingVertical: 6,
         borderRadius: 20,
-        backgroundColor: active ? '#3C096C' : '#E1DAE8',
+        backgroundColor: active ? colors.primary.dark : colors.light.dark,
         gap: 4,
       }}
     >
-      {icon && <Feather name={icon as any} size={10} color={active ? '#fff' : '#5A189A'} />}
-      <Text style={{ fontSize: 11, fontWeight: '600', color: active ? '#fff' : '#5A189A' }}>
+      {icon && <Feather name={icon as any} size={10} color={active ? 'white' : colors.primary.main} />}
+      <Text style={{ fontSize: 11, fontWeight: '600', color: active ? 'white' : colors.primary.main }}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -172,17 +173,17 @@ export function RecebimentoManual() {
 
       {/* Search */}
       <View className="flex-row items-center bg-light-dark mx-4 mt-2.5 mb-1 px-3.5 rounded-[10px] min-h-[44px] gap-2">
-        <Feather name="search" size={16} color="#5A189A" />
+        <Feather name="search" size={16} color={colors.primary.main} />
         <TextInput
           className="flex-1 text-sm text-primary-dark font-medium"
           placeholder="Buscar cliente ou cidade..."
-          placeholderTextColor="#8B5A96"
+          placeholderTextColor={colors.primary.light}
           value={search}
           onChangeText={setSearch}
         />
         {!!search && (
           <TouchableOpacity onPress={() => setSearch('')}>
-            <Feather name="x" size={16} color="#5A189A" />
+            <Feather name="x" size={16} color={colors.primary.main} />
           </TouchableOpacity>
         )}
       </View>
@@ -202,18 +203,18 @@ export function RecebimentoManual() {
                 marginLeft: 'auto',
                 flexDirection: 'row', alignItems: 'center', gap: 4,
                 paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
-                backgroundColor: cityFilter ? '#3C096C' : '#E1DAE8',
+                backgroundColor: cityFilter ? colors.primary.dark : colors.light.dark,
               }}
             >
-              <Feather name="map-pin" size={11} color={cityFilter ? '#fff' : '#5A189A'} />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: cityFilter ? '#fff' : '#5A189A', maxWidth: 90 }} numberOfLines={1}>
+              <Feather name="map-pin" size={11} color={cityFilter ? 'white' : colors.primary.main} />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: cityFilter ? 'white' : colors.primary.main, maxWidth: 90 }} numberOfLines={1}>
                 {cityFilter || 'Cidade'}
               </Text>
               {cityFilter
                 ? <TouchableOpacity onPress={() => setCityFilter('')} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
-                    <Feather name="x" size={11} color="#fff" />
+                    <Feather name="x" size={11} color="white" />
                   </TouchableOpacity>
-                : <Feather name="chevron-down" size={11} color="#5A189A" />
+                : <Feather name="chevron-down" size={11} color={colors.primary.main} />
               }
             </TouchableOpacity>
           )}
@@ -233,29 +234,29 @@ export function RecebimentoManual() {
               <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#D5CBE0' }} />
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#3C096C' }}>Filtrar por cidade</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: colors.primary.dark }}>Filtrar por cidade</Text>
               <TouchableOpacity onPress={() => setCityModalVisible(false)}>
-                <Feather name="x" size={22} color="#3C096C" />
+                <Feather name="x" size={22} color={colors.primary.dark} />
               </TouchableOpacity>
             </View>
             <View style={{
               flexDirection: 'row', alignItems: 'center', gap: 8,
-              backgroundColor: '#E1DAE8', borderRadius: 12,
+              backgroundColor: colors.light.dark, borderRadius: 12,
               marginHorizontal: 16, marginBottom: 8,
               paddingHorizontal: 12, paddingVertical: 10,
             }}>
-              <Feather name="search" size={15} color="#5A189A" />
+              <Feather name="search" size={15} color={colors.primary.main} />
               <TextInput
-                style={{ flex: 1, fontSize: 14, color: '#3C096C', fontWeight: '500' }}
+                style={{ flex: 1, fontSize: 14, color: colors.primary.dark, fontWeight: '500' }}
                 placeholder="Buscar cidade..."
-                placeholderTextColor="#8B5A96"
+                placeholderTextColor={colors.primary.light}
                 value={citySearch}
                 onChangeText={setCitySearch}
                 autoFocus
               />
               {!!citySearch && (
                 <TouchableOpacity onPress={() => setCitySearch('')}>
-                  <Feather name="x" size={15} color="#5A189A" />
+                  <Feather name="x" size={15} color={colors.primary.main} />
                 </TouchableOpacity>
               )}
             </View>
@@ -277,16 +278,16 @@ export function RecebimentoManual() {
                     onPress={() => { setCityFilter(item.name); setCityModalVisible(false); }}
                     style={{
                       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                      paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#E1DAE8',
+                      paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.light.dark,
                     }}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Feather name="map-pin" size={15} color={active ? '#3C096C' : '#8B5A96'} />
-                      <Text style={{ fontSize: 15, fontWeight: active ? '700' : '400', color: active ? '#3C096C' : '#5A189A' }}>
+                      <Feather name="map-pin" size={15} color={active ? colors.primary.dark : colors.primary.light} />
+                      <Text style={{ fontSize: 15, fontWeight: active ? '700' : '400', color: active ? colors.primary.dark : colors.primary.main }}>
                         {item.label}
                       </Text>
                     </View>
-                    {active && <Feather name="check" size={16} color="#3C096C" />}
+                    {active && <Feather name="check" size={16} color={colors.primary.dark} />}
                   </TouchableOpacity>
                 );
               }}
@@ -309,12 +310,12 @@ export function RecebimentoManual() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefresh(true); load(true); }}
-              colors={['#3C096C']}
+              colors={[colors.primary.dark]}
             />
           }
           ListEmptyComponent={
             <View className="items-center py-14">
-              <Feather name="check-circle" size={52} color="#8B5A96" />
+              <Feather name="check-circle" size={52} color={colors.primary.light} />
               <Text className="text-base text-primary font-medium mt-3.5">Nenhum recebimento encontrado</Text>
             </View>
           }
@@ -356,7 +357,7 @@ export function RecebimentoManual() {
                   <View className="flex-row items-center gap-1.5">
                     {isInst && (
                       <View className="flex-row items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary-dark/15">
-                        <Feather name="credit-card" size={9} color="#3C096C" />
+                        <Feather name="credit-card" size={9} color={colors.primary.dark} />
                         <Text className="text-[9px] font-bold text-primary-dark">
                           {installmentCount(item)}x
                         </Text>
@@ -381,7 +382,7 @@ export function RecebimentoManual() {
 
                 {!!item.observation && (
                   <View className="flex-row items-center gap-1 mt-1.5">
-                    <Feather name="message-square" size={10} color="#8B5A96" />
+                    <Feather name="message-square" size={10} color={colors.primary.light} />
                     <Text className="text-[11px] text-primary italic flex-1" numberOfLines={1}>
                       {item.observation}
                     </Text>
@@ -419,7 +420,7 @@ export function RecebimentoManual() {
                       )}
                       {!!selected.observation && (
                         <View className="flex-row items-start gap-1.5 mt-2 bg-white/70 rounded-[8px] px-3 py-2">
-                          <Feather name="message-square" size={13} color="#5A189A" style={{ marginTop: 1 }} />
+                          <Feather name="message-square" size={13} color={colors.primary.main} style={{ marginTop: 1 }} />
                           <Text className="text-[13px] text-primary-dark italic flex-1">{selected.observation}</Text>
                         </View>
                       )}

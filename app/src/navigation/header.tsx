@@ -2,6 +2,7 @@ import { TouchableOpacity, Text, View } from "react-native";
 import { BottomTabHeaderProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
+import { colors } from '@/theme/color';
 
 export default function Header({ options, route, navigation }: BottomTabHeaderProps) {
   const insets = useSafeAreaInsets();
@@ -32,10 +33,10 @@ export default function Header({ options, route, navigation }: BottomTabHeaderPr
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         style={{
           width: 36, height: 36, borderRadius: 18,
-          backgroundColor: '#3C096C', alignItems: 'center', justifyContent: 'center',
+          backgroundColor: colors.primary.dark, alignItems: 'center', justifyContent: 'center',
         }}
       >
-        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{initials}</Text>
+        <Text style={{ color: 'white', fontWeight: '700', fontSize: 13 }}>{initials}</Text>
       </TouchableOpacity>
     </View>
   );

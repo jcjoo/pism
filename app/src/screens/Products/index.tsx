@@ -8,6 +8,7 @@ import CadastroProduct from './CadastroProduct';
 
 import { productsService, Product } from '@/services/products.service';
 import { useNavigation } from '@react-navigation/native';
+import { colors } from '@/theme/color';
 
 type Step = 'filter' | 'register' | 'details' | 'edit';
 
@@ -99,7 +100,7 @@ export function Products() {
   const PageHeader = ({ title, onBack }: { title: string; onBack: () => void }) => (
     <View className="page-header">
       <TouchableOpacity onPress={onBack} className="mr-3 p-1">
-        <Feather name="chevron-left" size={28} color="#3C096C" />
+        <Feather name="chevron-left" size={28} color={colors.primary.dark} />
       </TouchableOpacity>
       <Text className="page-title">{title}</Text>
     </View>
@@ -119,7 +120,7 @@ export function Products() {
             variant="secondary"
             className="mx-5 mb-5"
             onPress={() => { setProductSelected(null); setStep('register'); }}
-            icon={<Feather name="plus" size={20} color="#EAE3F0" />}
+            icon={<Feather name="plus" size={20} color={colors.light.main} />}
           />
 
           <View className="px-5 mb-3">
@@ -143,7 +144,7 @@ export function Products() {
                   R$ {item.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </Text>
               </View>
-              <Feather name="chevron-right" size={20} color="#8B5A96" />
+              <Feather name="chevron-right" size={20} color={colors.primary.light} />
             </TouchableOpacity>
           ))}
 
@@ -165,7 +166,7 @@ export function Products() {
                     onPress={() => handleUnarchive(item.id)}
                     className="unarchive-btn"
                   >
-                    <Feather name="refresh-cw" size={20} color="#758C36" />
+                    <Feather name="refresh-cw" size={20} color={colors.secondary.dark} />
                     <Text className="text-[10px] text-secondary-dark font-bold mt-0.5">Restaurar</Text>
                   </TouchableOpacity>
                 </View>

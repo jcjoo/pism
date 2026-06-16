@@ -6,6 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { Button } from '@/components';
 import { formatDate } from './helpers';
+import { colors } from '@/theme/color';
 
 interface ReceiptModalProps {
   visible:       boolean;
@@ -45,7 +46,7 @@ export function ReceiptModal({
             className="flex-row items-center gap-2 bg-light rounded-[10px] p-3.5 mb-1"
             onPress={onOpenDatePicker}
           >
-            <Feather name="calendar" size={16} color="#3C096C" />
+            <Feather name="calendar" size={16} color={colors.primary.dark} />
             <Text className="text-base font-semibold text-primary-dark">{formatDate(date)}</Text>
           </TouchableOpacity>
 

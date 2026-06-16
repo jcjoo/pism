@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, Animated, PanResponder, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { RouteStop, SwipeCardHandle } from './types';
+import { colors } from '@/theme/color';
 import {
   renderPrice, formatDate, isInstallment, installmentCount,
   pendingInstallments, effectiveDueDate, STATUS, openDrivingNav,
@@ -81,8 +82,8 @@ export const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
       <Animated.View
         style={[
           {
-            backgroundColor: '#E1DAE8', borderRadius: 20, padding: 24,
-            elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+            backgroundColor: colors.light.dark, borderRadius: 20, padding: 24,
+            elevation: 6, shadowColor: 'black', shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.15, shadowRadius: 8,
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10,
           },
@@ -92,18 +93,18 @@ export const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
       >
         <Animated.View style={[
           { position: 'absolute', borderWidth: 3, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6, top: 28, zIndex: 20 },
-          { left: 20, borderColor: '#00C851', transform: [{ rotate: '-15deg' }] },
+          { left: 20, borderColor: colors.success.main, transform: [{ rotate: '-15deg' }] },
           { opacity: receivedOpacity },
         ]}>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: 2, color: '#00C851' }}>RECEBIDO</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: 2, color: colors.success.main }}>RECEBIDO</Text>
         </Animated.View>
 
         <Animated.View style={[
           { position: 'absolute', borderWidth: 3, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6, top: 28, zIndex: 20 },
-          { right: 20, borderColor: '#DF1515', transform: [{ rotate: '15deg' }] },
+          { right: 20, borderColor: colors.danger.main, transform: [{ rotate: '15deg' }] },
           { opacity: skipOpacity },
         ]}>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: 2, color: '#DF1515' }}>PULAR</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: 2, color: colors.danger.main }}>PULAR</Text>
         </Animated.View>
 
         <View className="flex-1 items-center justify-center">
@@ -120,7 +121,7 @@ export const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
 
           {isInst && (
             <View className="flex-row items-center gap-1.5 mb-1">
-              <Feather name="credit-card" size={12} color="#5A189A" />
+              <Feather name="credit-card" size={12} color={colors.primary.main} />
               <Text className="text-[12px] text-primary font-semibold">
                 {pend.length} de {installmentCount(stop.sale)} parcelas pendentes
               </Text>
@@ -144,7 +145,7 @@ export const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
 
           {!!stop.sale.observation && (
             <View className="flex-row items-start gap-2 bg-white/60 rounded-[10px] px-3 py-2.5 mb-3 mx-4">
-              <Feather name="message-square" size={14} color="#5A189A" style={{ marginTop: 1 }} />
+              <Feather name="message-square" size={14} color={colors.primary.main} style={{ marginTop: 1 }} />
               <Text className="text-[13px] text-primary-dark italic flex-1">{stop.sale.observation}</Text>
             </View>
           )}
@@ -162,7 +163,7 @@ export const SwipeCard = React.forwardRef<SwipeCardHandle, SwipeCardProps>(
             className="mt-5 flex-row items-center gap-1.5 opacity-60"
             onPress={() => openDrivingNav(stop.sale.clients?.address ?? '', stop.city)}
           >
-            <Feather name="navigation" size={13} color="#3C096C" />
+            <Feather name="navigation" size={13} color={colors.primary.dark} />
             <Text className="text-[11px] text-primary-dark underline">Abrir no Maps</Text>
           </TouchableOpacity>
         </View>

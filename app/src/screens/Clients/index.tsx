@@ -8,6 +8,7 @@ import CadastroClient from './CadastroClient';
 
 import { clientsService, Client } from '@/services/clients.service';
 import { useNavigation } from '@react-navigation/native';
+import { colors } from '@/theme/color';
 
 type Step = 'filter' | 'register' | 'details' | 'edit';
 
@@ -100,7 +101,7 @@ export function Clients() {
     <View className="page-header justify-between">
       <View className="flex-row items-center">
         <TouchableOpacity onPress={onBack} className="mr-3 p-1">
-          <Feather name="chevron-left" size={28} color="#3C096C" />
+          <Feather name="chevron-left" size={28} color={colors.primary.dark} />
         </TouchableOpacity>
         <Text className="page-title">{title}</Text>
       </View>
@@ -121,7 +122,7 @@ export function Clients() {
             variant="secondary"
             className="mx-5 mb-5"
             onPress={() => { setClientSelected(null); setStep('register'); }}
-            icon={<Feather name="user-plus" size={20} color="#EAE3F0" />}
+            icon={<Feather name="user-plus" size={20} color={colors.light.main} />}
           />
 
           <View className="px-5 mb-3">
@@ -135,7 +136,7 @@ export function Clients() {
               onPress={() => { setClientSelected(item); setStep('details'); }}
             >
               <View className="icon-avatar-sm">
-                <Feather name="user" size={24} color="#5A189A" />
+                <Feather name="user" size={24} color={colors.primary.main} />
               </View>
               <View className="flex-1">
                 <Text className="text-base font-bold text-primary-dark mb-1">{item.name}</Text>
@@ -143,7 +144,7 @@ export function Clients() {
                   {item.cpf ? `CPF: ${item.cpf}` : 'Sem CPF'} • {(item as any).municipio?.nome || 'Sem Cidade'}
                 </Text>
               </View>
-              <Feather name="chevron-right" size={20} color="#8B5A96" />
+              <Feather name="chevron-right" size={20} color={colors.primary.light} />
             </TouchableOpacity>
           ))}
 
@@ -158,7 +159,7 @@ export function Clients() {
                   className="entity-card mx-5 mb-3 opacity-60"
                 >
                   <View className="icon-avatar-sm">
-                    <Feather name="archive" size={24} color="#8B5A96" />
+                    <Feather name="archive" size={24} color={colors.primary.light} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-bold text-primary-dark mb-1">{item.name}</Text>
@@ -168,7 +169,7 @@ export function Clients() {
                     onPress={() => handleUnarchive(item.id)}
                     className="unarchive-btn"
                   >
-                    <Feather name="refresh-cw" size={20} color="#758C36" />
+                    <Feather name="refresh-cw" size={20} color={colors.secondary.dark} />
                     <Text className="text-[10px] text-secondary-dark font-bold mt-0.5">Restaurar</Text>
                   </TouchableOpacity>
                 </View>

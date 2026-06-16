@@ -4,6 +4,7 @@
     "ignoreDeprecations": "6.0",
     "strict": true,
     "baseUrl": ".",
+    "types": ["bun-types"],
     "paths": {
       "@/*": [
         "./src/*"

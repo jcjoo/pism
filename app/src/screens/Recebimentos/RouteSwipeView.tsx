@@ -11,6 +11,7 @@ import { renderPrice, isInstallment, openDrivingNav } from './helpers';
 import { SwipeCard } from './SwipeCard';
 import { CompletionView } from './CompletionView';
 import { InstallmentModal } from './InstallmentModal';
+import { colors } from '@/theme/color';
 
 interface RouteSwipeViewProps {
   initialRoute: RouteStop[];
@@ -109,7 +110,7 @@ export function RouteSwipeView({ initialRoute, onBack }: RouteSwipeViewProps) {
       <View className="bg-white border-b border-light-dark">
         <View className="flex-row items-center px-4 py-3">
           <TouchableOpacity onPress={onBack} className="p-1">
-            <Feather name="arrow-left" size={20} color="#3C096C" />
+            <Feather name="arrow-left" size={20} color={colors.primary.dark} />
           </TouchableOpacity>
           <View className="flex-1 mx-3">
             <Text className="text-[11px] text-primary font-semibold mb-1.5">
@@ -151,10 +152,10 @@ export function RouteSwipeView({ initialRoute, onBack }: RouteSwipeViewProps) {
       <View className="bg-white border-t border-light-dark pb-1">
         <View className="flex-row justify-between items-center px-8 pt-3 pb-1">
           <TouchableOpacity
-            className="items-center justify-center w-[68px] h-[68px] rounded-full bg-[#FFF0F0] border-2 border-danger gap-0.5"
+            className="items-center justify-center w-[68px] h-[68px] rounded-full bg-danger-light border-2 border-danger gap-0.5"
             onPress={handlePularPress}
           >
-            <Feather name="x" size={26} color="#DF1515" />
+            <Feather name="x" size={26} color={colors.danger.main} />
             <Text className="text-[10px] font-bold text-danger text-center">Pular</Text>
           </TouchableOpacity>
 
@@ -162,19 +163,19 @@ export function RouteSwipeView({ initialRoute, onBack }: RouteSwipeViewProps) {
             style={{
               alignItems: 'center', justifyContent: 'center',
               width: 56, height: 56, borderRadius: 28,
-              backgroundColor: '#3C096C', gap: 2,
+              backgroundColor: colors.primary.dark, gap: 2,
             }}
             onPress={handleNavigate}
           >
-            <Feather name="navigation" size={20} color="#C4D680" />
-            <Text style={{ fontSize: 9, fontWeight: '700', color: '#C4D680' }}>Navegar</Text>
+            <Feather name="navigation" size={20} color={colors.secondary.light} />
+            <Text style={{ fontSize: 9, fontWeight: '700', color: colors.secondary.light }}>Navegar</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             className="items-center justify-center w-[68px] h-[68px] rounded-full bg-secondary-dark gap-0.5"
             onPress={handleRequestReceive}
           >
-            <Feather name="check" size={26} color="#fff" />
+            <Feather name="check" size={26} color="white" />
             <Text className="text-[10px] font-bold text-white text-center">Recebido</Text>
           </TouchableOpacity>
         </View>

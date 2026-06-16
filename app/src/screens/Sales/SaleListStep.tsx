@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { Button } from '@/components';
 import { STATUS_CONFIG } from './types';
 import { renderPrice, formatDate, calcTotal, getDaysUntilDue, getDueStatus } from './helpers';
+import { colors } from '@/theme/color';
 
 interface SaleListStepProps {
   salesData:      any[];
@@ -22,18 +23,18 @@ export function SaleListStep({
   return (
     <View>
       <View className="flex-row gap-2 mt-4 mb-3">
-        <View className="flex-1 bg-white rounded-xl p-3 border-l-[3px] border-l-primary" style={{ elevation: 2, shadowColor: '#3C096C', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
-          <Feather name="dollar-sign" size={12} color="#5A189A" />
+        <View className="flex-1 bg-white rounded-xl p-3 border-l-[3px] border-l-primary" style={{ elevation: 2, shadowColor: colors.primary.dark, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Feather name="dollar-sign" size={12} color={colors.primary.main} />
           <Text className="text-[10px] text-primary font-semibold mt-1">Total</Text>
           <Text className="text-[13px] font-bold text-primary-dark mt-0.5">{renderPrice(totalAll)}</Text>
         </View>
-        <View className="flex-1 bg-white rounded-xl p-3 border-l-[3px] border-l-[#1B8A3D]" style={{ elevation: 2, shadowColor: '#1B8A3D', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
-          <Feather name="check-circle" size={12} color="#1B8A3D" />
+        <View className="flex-1 bg-white rounded-xl p-3 border-l-[3px] border-l-success" style={{ elevation: 2, shadowColor: colors.success.main, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Feather name="check-circle" size={12} color={colors.success.main} />
           <Text className="text-[10px] text-primary font-semibold mt-1">Recebido</Text>
-          <Text className="text-[13px] font-bold text-[#1B8A3D] mt-0.5">{renderPrice(totalReceived)}</Text>
+          <Text className="text-[13px] font-bold text-success mt-0.5">{renderPrice(totalReceived)}</Text>
         </View>
-        <View className="flex-1 bg-white rounded-xl p-3 border-l-[3px] border-l-danger" style={{ elevation: 2, shadowColor: '#DF1515', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
-          <Feather name="clock" size={12} color="#DF1515" />
+        <View className="flex-1 bg-white rounded-xl p-3 border-l-[3px] border-l-danger" style={{ elevation: 2, shadowColor: colors.danger.main, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Feather name="clock" size={12} color={colors.danger.main} />
           <Text className="text-[10px] text-primary font-semibold mt-1">A receber</Text>
           <Text className="text-[13px] font-bold text-danger mt-0.5">{renderPrice(totalPending)}</Text>
         </View>
@@ -44,7 +45,7 @@ export function SaleListStep({
           <Text className="text-primary-dark font-bold text-base">
             {salesData.length} venda{salesData.length !== 1 ? 's' : ''}
           </Text>
-          <Feather name="list" size={18} color="#3C096C" />
+          <Feather name="list" size={18} color={colors.primary.dark} />
         </View>
 
         {salesData.length === 0 ? (
@@ -58,7 +59,7 @@ export function SaleListStep({
               <TouchableOpacity
                 key={sale.id}
                 className="flex-row items-center py-3 px-2.5 rounded-xl mb-2 bg-light"
-                style={{ elevation: 1, shadowColor: '#3C096C', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 }}
+                style={{ elevation: 1, shadowColor: colors.primary.dark, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 }}
                 onPress={() => onSelectSale(sale)}
               >
                 <View

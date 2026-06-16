@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { Button } from '@/components';
 import { STATUS_CONFIG } from './types';
 import { renderPrice, formatDate, calcTotal, getDaysUntilDue, getDueStatus } from './helpers';
+import { colors } from '@/theme/color';
 
 interface SaleDetailsStepProps {
   sale:             any;
@@ -85,7 +86,7 @@ export function SaleDetailsStep({
                   variant="primary-light"
                   className="flex-1"
                   onPress={onEditReceipt}
-                  icon={<Feather name="edit-2" size={14} color="#fff" />}
+                  icon={<Feather name="edit-2" size={14} color="white" />}
                 />
                 <View className="w-2" />
                 <Button
@@ -114,7 +115,7 @@ export function SaleDetailsStep({
                 variant="secondary"
                 className="mt-2.5"
                 onPress={onMarkReceived}
-                icon={<Feather name="check" size={14} color="#0E0F0C" />}
+                icon={<Feather name="check" size={14} color={colors.dark.main} />}
               />
             </>
           )}

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { CalendarPayment } from './types';
 import { renderPrice, STATUS_COLOR, STATUS_LABEL, MONTH_NAMES, todayKey } from './helpers';
+import { colors } from '@/theme/color';
 
 interface PaymentDayViewProps {
   selectedKey:  string | null;
@@ -36,7 +37,7 @@ export function PaymentDayView({ selectedKey, paymentMap, loading, onNavigate, o
 
           {selPayments.length === 0 ? (
             <View className="bg-white rounded-[12px] p-5 items-center elevation-1">
-              <Feather name="check-circle" size={32} color="#8B5A96" />
+              <Feather name="check-circle" size={32} color={colors.primary.light} />
               <Text className="text-[13px] text-primary mt-2">Nenhum pagamento neste dia</Text>
             </View>
           ) : (
@@ -68,7 +69,7 @@ export function PaymentDayView({ selectedKey, paymentMap, loading, onNavigate, o
                   </View>
                   <View className="items-end ml-3">
                     <Text className="text-[15px] font-bold text-primary-dark">{renderPrice(p.amount)}</Text>
-                    <Feather name="chevron-right" size={16} color="#8B5A96" style={{ marginTop: 4 }} />
+                    <Feather name="chevron-right" size={16} color={colors.primary.light} style={{ marginTop: 4 }} />
                   </View>
                 </TouchableOpacity>
               ))}
@@ -78,9 +79,9 @@ export function PaymentDayView({ selectedKey, paymentMap, loading, onNavigate, o
                 onPress={onNavigate}
                 activeOpacity={0.85}
               >
-                <Feather name="dollar-sign" size={16} color="#C4D680" />
+                <Feather name="dollar-sign" size={16} color={colors.secondary.light} />
                 <Text className="text-[13px] font-bold text-white">Ir para Recebimentos</Text>
-                <Feather name="arrow-right" size={14} color="#C4D680" />
+                <Feather name="arrow-right" size={14} color={colors.secondary.light} />
               </TouchableOpacity>
             </>
           )}
@@ -101,7 +102,7 @@ export function PaymentDayView({ selectedKey, paymentMap, loading, onNavigate, o
 
             if (upcoming.length === 0) return (
               <View className="bg-white rounded-[12px] p-5 items-center elevation-1">
-                <Feather name="check-circle" size={32} color="#758C36" />
+                <Feather name="check-circle" size={32} color={colors.secondary.dark} />
                 <Text className="text-[13px] text-primary mt-2">Todos os pagamentos em dia!</Text>
               </View>
             );

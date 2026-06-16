@@ -1,26 +1,24 @@
+import palette from './palette';
+
+// Same palette tailwind.config.js uses, exposed for places that can't take a
+// className (icon `color` props, placeholderTextColor, shadowColor, etc).
+// `DEFAULT` is renamed to `main` here since `colors.primary.DEFAULT` reads
+// awkwardly in plain JS/TS expressions.
+type Shade = string | { light?: string; DEFAULT?: string; dark?: string };
+
+function withMain(shade: Shade) {
+  if (typeof shade === 'string') return { main: shade };
+  const { DEFAULT, ...rest } = shade;
+  return { ...rest, main: DEFAULT };
+}
+
 export const colors = {
-  primary: {
-    light: '#8B5A96',
-    main: '#5A189A',
-    dark: '#3C096C',
-  },
-  secondary: {
-    light: '#C4D680',
-    main: '#B2CA63',
-    dark: '#758C36',
-  },
-  light: {
-    main: '#EAE3F0',
-    dark: '#E1DAE8',
-  },
-  dark: {
-    light: '#222B14',
-    main: '#0E0F0C',
-  },
-  success: {
-    main: '#00E31A',
-  },
-  danger: {
-    main: '#DF1515',
-  },
+  primary: withMain(palette.primary),
+  secondary: withMain(palette.secondary),
+  light: withMain(palette.light),
+  dark: withMain(palette.dark),
+  success: withMain(palette.success),
+  danger: withMain(palette.danger),
+  warning: withMain(palette.warning),
+  info: withMain(palette.info),
 };

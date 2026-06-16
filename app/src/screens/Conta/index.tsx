@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { Button, Input, FormScrollView, useToast } from '@/components';
+import { colors } from '@/theme/color';
 
 export function Conta() {
   const navigation = useNavigation();
@@ -72,7 +73,7 @@ export function Conta() {
 
         <View className="page-header">
           <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3 p-1">
-            <Feather name="chevron-left" size={28} color="#3C096C" />
+            <Feather name="chevron-left" size={28} color={colors.primary.dark} />
           </TouchableOpacity>
           <Text className="page-title">Minha Conta</Text>
         </View>
@@ -80,14 +81,14 @@ export function Conta() {
         <View className="items-center py-8">
           <View style={{
             width: 88, height: 88, borderRadius: 44,
-            backgroundColor: '#3C096C', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: colors.primary.dark, alignItems: 'center', justifyContent: 'center',
             marginBottom: 12,
           }}>
-            <Text style={{ fontSize: 32, fontWeight: '700', color: '#fff' }}>
+            <Text style={{ fontSize: 32, fontWeight: '700', color: 'white' }}>
               {displayInitials}
             </Text>
           </View>
-          <Text style={{ fontSize: 13, color: '#8B5A96' }}>{email}</Text>
+          <Text style={{ fontSize: 13, color: colors.primary.light }}>{email}</Text>
         </View>
 
         <View className="px-5">
@@ -114,7 +115,7 @@ export function Conta() {
               variant="primary-dark"
               onPress={handleSaveName}
               disabled={saving}
-              icon={saving ? undefined : <Feather name="check" size={18} color="#EAE3F0" />}
+              icon={saving ? undefined : <Feather name="check" size={18} color={colors.light.main} />}
             />
           </View>
 
@@ -124,13 +125,13 @@ export function Conta() {
               onPress={() => setShowPasswordForm(v => !v)}
               style={{ flexDirection: 'row', alignItems: 'center' }}
             >
-              <Feather name="lock" size={18} color="#5A189A" />
-              <Text style={{ marginLeft: 12, flex: 1, fontSize: 15, color: '#3C096C', fontWeight: '600' }}>
+              <Feather name="lock" size={18} color={colors.primary.main} />
+              <Text style={{ marginLeft: 12, flex: 1, fontSize: 15, color: colors.primary.dark, fontWeight: '600' }}>
                 Alterar senha
               </Text>
               <Feather
                 name={showPasswordForm ? 'chevron-up' : 'chevron-down'}
-                size={18} color="#8B5A96"
+                size={18} color={colors.primary.light}
               />
             </TouchableOpacity>
 
@@ -155,7 +156,7 @@ export function Conta() {
                   variant="primary-dark"
                   onPress={handleSavePassword}
                   disabled={savingPassword}
-                  icon={savingPassword ? undefined : <Feather name="check" size={18} color="#EAE3F0" />}
+                  icon={savingPassword ? undefined : <Feather name="check" size={18} color={colors.light.main} />}
                 />
               </View>
             )}
@@ -167,12 +168,12 @@ export function Conta() {
             style={{
               flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
               paddingVertical: 14, borderRadius: 12,
-              backgroundColor: '#FFF0F0', borderWidth: 1, borderColor: '#FFCDD2',
+              backgroundColor: colors.danger.light, borderWidth: 1, borderColor: '#FFCDD2',
               gap: 8,
             }}
           >
-            <Feather name="log-out" size={18} color="#DF1515" />
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#DF1515' }}>Sair da conta</Text>
+            <Feather name="log-out" size={18} color={colors.danger.main} />
+            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.danger.main }}>Sair da conta</Text>
           </TouchableOpacity>
         </View>
       </FormScrollView>

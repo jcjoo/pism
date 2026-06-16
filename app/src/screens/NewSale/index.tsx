@@ -153,7 +153,7 @@ export function NewSale() {
                 variant="primary-dark"
                 className="flex-1"
                 onPress={handleAddToCart}
-                icon={<Feather name="plus" size={16} color="#fff" />}
+                icon={<Feather name="plus" size={16} color="white" />}
               />
             </View>
           </>

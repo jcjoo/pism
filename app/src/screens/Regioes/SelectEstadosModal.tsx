@@ -6,6 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { Button } from '@/components';
 import { Estado } from '@/services/endereco.service';
+import { colors } from '@/theme/color';
 
 interface SelectEstadosModalProps {
   visible:  boolean;
@@ -55,11 +56,11 @@ export function SelectEstadosModal({ visible, estados, selected, onClose, onSave
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#3C096C' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.primary.dark }}>
               Selecionar Estados
             </Text>
             <TouchableOpacity onPress={() => setPicked(picked.length === estados.length ? [] : estados.map(e => e.uf))}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#5A189A' }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary.main }}>
                 {picked.length === estados.length ? 'Limpar tudo' : 'Selecionar tudo'}
               </Text>
             </TouchableOpacity>
@@ -67,14 +68,14 @@ export function SelectEstadosModal({ visible, estados, selected, onClose, onSave
 
           <View style={{
             flexDirection: 'row', alignItems: 'center', gap: 8,
-            backgroundColor: '#E1DAE8', borderRadius: 10,
+            backgroundColor: colors.light.dark, borderRadius: 10,
             paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12,
           }}>
-            <Feather name="search" size={15} color="#5A189A" />
+            <Feather name="search" size={15} color={colors.primary.main} />
             <TextInput
-              style={{ flex: 1, fontSize: 14, color: '#3C096C' }}
+              style={{ flex: 1, fontSize: 14, color: colors.primary.dark }}
               placeholder="Buscar estado..."
-              placeholderTextColor="#8B5A96"
+              placeholderTextColor={colors.primary.light}
               value={search}
               onChangeText={setSearch}
             />
@@ -92,22 +93,22 @@ export function SelectEstadosModal({ visible, estados, selected, onClose, onSave
                   onPress={() => toggle(item.uf)}
                   style={{
                     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                    paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#E1DAE8',
+                    paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.light.dark,
                   }}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <View style={{
                       width: 36, height: 36, borderRadius: 8,
-                      backgroundColor: '#EAE3F0', alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: colors.light.main, alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#3C096C' }}>{item.uf}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary.dark }}>{item.uf}</Text>
                     </View>
-                    <Text style={{ fontSize: 15, color: '#3C096C' }}>{item.nome}</Text>
+                    <Text style={{ fontSize: 15, color: colors.primary.dark }}>{item.nome}</Text>
                   </View>
                   <Feather
                     name={isPicked ? 'check-square' : 'square'}
                     size={20}
-                    color={isPicked ? '#5A189A' : '#C4B5D0'}
+                    color={isPicked ? colors.primary.main : '#C4B5D0'}
                   />
                 </TouchableOpacity>
               );
@@ -121,7 +122,7 @@ export function SelectEstadosModal({ visible, estados, selected, onClose, onSave
               variant="secondary"
               className="flex-[1.4]"
               onPress={() => onSave(picked)}
-              icon={<Feather name="check" size={16} color="#0E0F0C" />}
+              icon={<Feather name="check" size={16} color={colors.dark.main} />}
             />
           </View>
         </View>

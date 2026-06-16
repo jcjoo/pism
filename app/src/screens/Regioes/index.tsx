@@ -11,6 +11,7 @@ import { storageService, STORAGE_KEYS } from '@/services/storage.service';
 import { useNavigation } from '@react-navigation/native';
 import { AddCidadeModal } from './AddCidadeModal';
 import { SelectEstadosModal } from './SelectEstadosModal';
+import { colors } from '@/theme/color';
 
 async function clientCountForMunicipio(id: number): Promise<number> {
   const { count } = await supabase
@@ -106,7 +107,7 @@ export function Regioes() {
         {/* Header */}
         <View className="page-header">
           <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3 p-1">
-            <Feather name="chevron-left" size={28} color="#3C096C" />
+            <Feather name="chevron-left" size={28} color={colors.primary.dark} />
           </TouchableOpacity>
           <Text className="page-title">Regiões</Text>
         </View>
@@ -117,27 +118,27 @@ export function Regioes() {
             variant="secondary"
             className="flex-1"
             onPress={() => setShowAdd(true)}
-            icon={<Feather name="map-pin" size={20} color="#EAE3F0" />}
+            icon={<Feather name="map-pin" size={20} color={colors.light.main} />}
           />
           <TouchableOpacity
             onPress={() => setShowSelectEstados(true)}
             style={{
               width: 48, alignItems: 'center', justifyContent: 'center',
-              borderRadius: 12, backgroundColor: '#EAE3F0',
+              borderRadius: 12, backgroundColor: colors.light.main,
             }}
           >
-            <Feather name="filter" size={20} color="#5A189A" />
+            <Feather name="filter" size={20} color={colors.primary.main} />
           </TouchableOpacity>
         </View>
 
         {loading ? (
           <View style={{ paddingTop: 60, alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#5A189A" />
+            <ActivityIndicator size="large" color={colors.primary.main} />
           </View>
         ) : municipios.length === 0 ? (
           <View style={{ paddingTop: 60, alignItems: 'center', paddingHorizontal: 32 }}>
             <Feather name="map" size={52} color="#C4B5D0" />
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#8B5A96', marginTop: 16, textAlign: 'center' }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.primary.light, marginTop: 16, textAlign: 'center' }}>
               Nenhuma cidade cadastrada
             </Text>
             <Text style={{ fontSize: 13, color: '#B09DC0', marginTop: 6, textAlign: 'center' }}>
@@ -147,7 +148,7 @@ export function Regioes() {
         ) : grouped.length === 0 ? (
           <View style={{ paddingTop: 60, alignItems: 'center', paddingHorizontal: 32 }}>
             <Feather name="filter" size={52} color="#C4B5D0" />
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#8B5A96', marginTop: 16, textAlign: 'center' }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.primary.light, marginTop: 16, textAlign: 'center' }}>
               Nenhum estado selecionado
             </Text>
             <Text style={{ fontSize: 13, color: '#B09DC0', marginTop: 6, textAlign: 'center' }}>
@@ -168,14 +169,14 @@ export function Regioes() {
                     className="entity-card mb-3"
                   >
                     <View className="icon-avatar-sm">
-                      <Feather name="map-pin" size={20} color="#5A189A" />
+                      <Feather name="map-pin" size={20} color={colors.primary.main} />
                     </View>
                     <View className="flex-1">
                       <Text className="text-base font-bold text-primary-dark">{cidade.nome}</Text>
                       <Text className="text-[13px] text-primary-light">{uf}</Text>
                     </View>
                     {deleting === cidade.id ? (
-                      <ActivityIndicator size="small" color="#DF1515" />
+                      <ActivityIndicator size="small" color={colors.danger.main} />
                     ) : (
                       <TouchableOpacity
                         onPress={() => handleDelete(cidade)}

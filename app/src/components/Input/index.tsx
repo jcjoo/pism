@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput, TextInputProps, View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { colors } from '@/theme/color';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -19,13 +20,13 @@ export function Input({ label, className, secureTextEntry, ...rest }: InputProps
       <View className="flex-row items-center">
         <TextInput
           className="flex-1 text-base text-primary-dark font-semibold p-0"
-          placeholderTextColor="#8B5A96"
+          placeholderTextColor={colors.primary.light}
           secureTextEntry={secureTextEntry ? hidden : false}
           {...rest}
         />
         {secureTextEntry && (
           <TouchableOpacity onPress={() => setHidden(h => !h)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Feather name={hidden ? 'eye' : 'eye-off'} size={18} color="#8B5A96" />
+            <Feather name={hidden ? 'eye' : 'eye-off'} size={18} color={colors.primary.light} />
           </TouchableOpacity>
         )}
       </View>

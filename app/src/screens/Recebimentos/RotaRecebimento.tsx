@@ -10,6 +10,7 @@ import { recebimentosService } from '@/services/recebimentos.service';
 import { RouteStop } from './types';
 import { renderPrice, buildRoute } from './helpers';
 import { RouteSwipeView } from './RouteSwipeView';
+import { colors } from '@/theme/color';
 
 export function RotaRecebimento() {
   const toast = useToast();
@@ -70,7 +71,7 @@ export function RotaRecebimento() {
               onChangeText={setWorkHours}
               keyboardType="decimal-pad"
               placeholder="8"
-              placeholderTextColor="#8B5A96"
+              placeholderTextColor={colors.primary.light}
             />
           </View>
           <View className="flex-1">
@@ -81,7 +82,7 @@ export function RotaRecebimento() {
               onChangeText={setAvgStop}
               keyboardType="decimal-pad"
               placeholder="15"
-              placeholderTextColor="#8B5A96"
+              placeholderTextColor={colors.primary.light}
             />
           </View>
         </View>
@@ -91,7 +92,7 @@ export function RotaRecebimento() {
           className="flex-row items-center bg-light rounded-lg p-3 mb-3 gap-2"
           onPress={() => setShowPicker(true)}
         >
-          <Feather name="calendar" size={16} color="#3C096C" />
+          <Feather name="calendar" size={16} color={colors.primary.dark} />
           <Text className="text-sm text-primary-dark font-semibold capitalize">
             {targetDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
           </Text>
@@ -111,12 +112,12 @@ export function RotaRecebimento() {
           variant="secondary"
           disabled={loading}
           onPress={generate}
-          icon={<Feather name="map-pin" size={16} color="#0E0F0C" />}
+          icon={<Feather name="map-pin" size={16} color={colors.dark.main} />}
         />
       </View>
 
       <View className="flex-row items-start gap-2 bg-primary/15 mx-4 rounded-[10px] p-3.5 mb-2">
-        <Feather name="info" size={16} color="#5A189A" />
+        <Feather name="info" size={16} color={colors.primary.main} />
         <Text className="flex-1 text-xs text-primary leading-[18px]">
           A rota agrupa paradas por cidade, prioriza atrasados e respeita seu tempo disponível.
           Vendas parceladas reaparecem a cada mês enquanto houver parcelas pendentes.
@@ -129,7 +130,7 @@ export function RotaRecebimento() {
             className="flex-row items-center justify-center gap-2 bg-light-dark rounded-lg p-3 mb-3"
             onPress={() => setShowExcluded(v => !v)}
           >
-            <Feather name={showExcluded ? 'chevron-up' : 'chevron-down'} size={16} color="#5A189A" />
+            <Feather name={showExcluded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primary.main} />
             <Text className="text-xs text-primary font-semibold">
               {excluded.length} paradas não incluídas na última rota
             </Text>

@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { View, Text } from "react-native";
 import { Button } from "@/components";
 import { Tables } from "@/types/database.types";
+import { colors } from '@/theme/color';
 
 type ClientData = Partial<Tables<'clients'>>;
 
@@ -32,24 +33,24 @@ export default function DetailsClient({ client, onCancelEditar, onEditarProduto,
     <View className="screen-padded">
       <View className="details-card elevation-4">
         <View className="icon-avatar-lg">
-          <Feather name="user" size={40} color="#5A189A" />
+          <Feather name="user" size={40} color={colors.primary.main} />
         </View>
         <Text className="page-title text-center mb-4">{client?.name}</Text>
 
         <View className="info-row">
-          <Feather name="mail" size={16} color="#8B5A96" />
+          <Feather name="mail" size={16} color={colors.primary.light} />
           <Text className="text-sm font-semibold text-primary ml-2">{client?.email || 'Sem e-mail'}</Text>
         </View>
 
         <View className="info-row">
-          <Feather name="phone" size={16} color="#8B5A96" />
+          <Feather name="phone" size={16} color={colors.primary.light} />
           <Text className="text-sm text-primary-light ml-2">
             {client.phone ? formatPhone(client.phone) : 'Sem telefone'}
           </Text>
         </View>
 
         <View className="info-row">
-          <Feather name="file-text" size={16} color="#8B5A96" />
+          <Feather name="file-text" size={16} color={colors.primary.light} />
           <Text className="text-sm text-primary-light ml-2">
             {client?.cpf ? formatCPF(client.cpf) : 'Sem CPF'}
           </Text>
@@ -68,14 +69,14 @@ export default function DetailsClient({ client, onCancelEditar, onEditarProduto,
           title="Editar Cliente"
           variant="primary-dark"
           onPress={onEditarProduto}
-          icon={<Feather name="edit-2" size={18} color="#EAE3F0" />}
+          icon={<Feather name="edit-2" size={18} color={colors.light.main} />}
         />
         <View className="h-3" />
         <Button
           title="Excluir / Arquivar"
           variant="danger"
           onPress={onDeletarCliente}
-          icon={<Feather name="trash-2" size={18} color="#EAE3F0" />}
+          icon={<Feather name="trash-2" size={18} color={colors.light.main} />}
         />
         <View className="h-3" />
         <Button title="Voltar para Lista" variant="secondary" onPress={onCancelEditar} />

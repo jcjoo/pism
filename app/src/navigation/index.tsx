@@ -21,6 +21,7 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import Header from "./header";
 import Menu from "./menu";
+import { colors } from '@/theme/color';
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -58,14 +59,14 @@ function AppTabs() {
   })();
 
   const tabBarStyle = {
-    backgroundColor: "#E1DAE8",
+    backgroundColor: colors.light.dark,
     borderTopWidth: 1,
     borderTopColor: "#D5CBE0",
     height: 60 + insets.bottom,
     paddingBottom: insets.bottom,
     paddingTop: 0,
     elevation: 8,
-    shadowColor: "#3C096C",
+    shadowColor: colors.primary.dark,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -77,7 +78,7 @@ function AppTabs() {
         headerShown: true,
         header: (props) => <Header {...props} />,
         tabBarStyle,
-        tabBarActiveTintColor: "#3C096C",
+        tabBarActiveTintColor: colors.primary.dark,
         tabBarInactiveTintColor: "#9B8AAA",
         tabBarShowLabel: false,
         tabBarHideOnKeyboard: true,

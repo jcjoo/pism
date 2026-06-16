@@ -6,6 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { Button, useToast } from '@/components';
 import { enderecoService, Estado, Municipio } from '@/services/endereco.service';
+import { colors } from '@/theme/color';
 
 interface AddCidadeModalProps {
   visible:  boolean;
@@ -80,7 +81,7 @@ export function AddCidadeModal({ visible, estados, onClose, onSaved }: AddCidade
               <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#D5CBE0' }} />
             </View>
 
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#3C096C', marginBottom: 16 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.primary.dark, marginBottom: 16 }}>
               {step === 'estado' ? 'Selecione o Estado' : `Nova cidade em ${selectedEstado?.uf}`}
             </Text>
 
@@ -88,14 +89,14 @@ export function AddCidadeModal({ visible, estados, onClose, onSaved }: AddCidade
               <>
                 <View style={{
                   flexDirection: 'row', alignItems: 'center', gap: 8,
-                  backgroundColor: '#E1DAE8', borderRadius: 10,
+                  backgroundColor: colors.light.dark, borderRadius: 10,
                   paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12,
                 }}>
-                  <Feather name="search" size={15} color="#5A189A" />
+                  <Feather name="search" size={15} color={colors.primary.main} />
                   <TextInput
-                    style={{ flex: 1, fontSize: 14, color: '#3C096C' }}
+                    style={{ flex: 1, fontSize: 14, color: colors.primary.dark }}
                     placeholder="Buscar estado..."
-                    placeholderTextColor="#8B5A96"
+                    placeholderTextColor={colors.primary.light}
                     value={estadoSearch}
                     onChangeText={setEstadoSearch}
                     autoFocus
@@ -111,19 +112,19 @@ export function AddCidadeModal({ visible, estados, onClose, onSaved }: AddCidade
                       onPress={() => handleSelectEstado(item)}
                       style={{
                         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                        paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#E1DAE8',
+                        paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.light.dark,
                       }}
                     >
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                         <View style={{
                           width: 36, height: 36, borderRadius: 8,
-                          backgroundColor: '#EAE3F0', alignItems: 'center', justifyContent: 'center',
+                          backgroundColor: colors.light.main, alignItems: 'center', justifyContent: 'center',
                         }}>
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#3C096C' }}>{item.uf}</Text>
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary.dark }}>{item.uf}</Text>
                         </View>
-                        <Text style={{ fontSize: 15, color: '#3C096C' }}>{item.nome}</Text>
+                        <Text style={{ fontSize: 15, color: colors.primary.dark }}>{item.nome}</Text>
                       </View>
-                      <Feather name="chevron-right" size={16} color="#8B5A96" />
+                      <Feather name="chevron-right" size={16} color={colors.primary.light} />
                     </TouchableOpacity>
                   )}
                 />
@@ -134,23 +135,23 @@ export function AddCidadeModal({ visible, estados, onClose, onSaved }: AddCidade
                   onPress={() => setStep('estado')}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 }}
                 >
-                  <Feather name="arrow-left" size={16} color="#5A189A" />
-                  <Text style={{ fontSize: 13, color: '#5A189A', fontWeight: '600' }}>
+                  <Feather name="arrow-left" size={16} color={colors.primary.main} />
+                  <Text style={{ fontSize: 13, color: colors.primary.main, fontWeight: '600' }}>
                     {selectedEstado?.nome}
                   </Text>
                 </TouchableOpacity>
 
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#3C096C', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary.dark, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
                   Nome da cidade
                 </Text>
                 <View style={{
-                  backgroundColor: '#E1DAE8', borderRadius: 10,
+                  backgroundColor: colors.light.dark, borderRadius: 10,
                   paddingHorizontal: 14, paddingVertical: 12, marginBottom: 20,
                 }}>
                   <TextInput
                     style={{ fontSize: 16, color: '#1A0030' }}
                     placeholder="Ex: Belo Horizonte"
-                    placeholderTextColor="#8B5A96"
+                    placeholderTextColor={colors.primary.light}
                     value={nomeCidade}
                     onChangeText={setNomeCidade}
                     autoFocus
@@ -166,7 +167,7 @@ export function AddCidadeModal({ visible, estados, onClose, onSaved }: AddCidade
                     className="flex-[1.4]"
                     onPress={handleSave}
                     disabled={saving}
-                    icon={saving ? undefined : <Feather name="plus" size={16} color="#0E0F0C" />}
+                    icon={saving ? undefined : <Feather name="plus" size={16} color={colors.dark.main} />}
                   />
                 </View>
               </>

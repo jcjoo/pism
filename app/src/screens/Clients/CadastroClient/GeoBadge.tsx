@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { GeoStatus, GEO_CFG } from './types';
+import { colors } from '@/theme/color';
 
 interface GeoBadgeProps {
   status: GeoStatus;
@@ -22,7 +23,7 @@ export function GeoBadge({ status, lat, lon }: GeoBadgeProps) {
       marginTop: 6, gap: 7,
     }}>
       {status === 'loading' ? (
-        <ActivityIndicator size="small" color="#5A189A" />
+        <ActivityIndicator size="small" color={colors.primary.main} />
       ) : (
         <Feather name={geo.icon as any} size={13} color={geo.color} />
       )}

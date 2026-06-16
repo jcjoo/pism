@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { View, Text } from "react-native";
 import { Button } from "@/components";
+import { colors } from '@/theme/color';
 
 interface newProductProps {
   product: {
@@ -18,13 +19,13 @@ interface newProductProps {
 }
 
 export default function DetailsProduct({ product, onCancelEditar, onEditarProduto, onDeletarProduto }: newProductProps) {
-  const stockColor = (product?.stock || 0) > 0 ? '#2E7D32' : '#C62828';
+  const stockColor = (product?.stock || 0) > 0 ? colors.success.main : '#C62828';
 
   return (
     <View className="screen-padded">
       <View className="details-card elevation-4">
         <View className="icon-avatar-lg">
-          <Feather name="package" size={40} color="#5A189A" />
+          <Feather name="package" size={40} color={colors.primary.main} />
         </View>
         <Text className="page-title text-center mb-2">{product?.name}</Text>
         <Text className="text-[28px] font-black text-primary mb-6">
@@ -32,7 +33,7 @@ export default function DetailsProduct({ product, onCancelEditar, onEditarProdut
         </Text>
 
         <View className="info-row items-start">
-          <Feather name="info" size={16} color="#8B5A96" />
+          <Feather name="info" size={16} color={colors.primary.light} />
           <Text className="text-sm text-primary-light ml-2 flex-1">
             {product?.description || 'Sem descrição'}
           </Text>
@@ -51,14 +52,14 @@ export default function DetailsProduct({ product, onCancelEditar, onEditarProdut
           title="Editar Produto"
           variant="primary-dark"
           onPress={onEditarProduto}
-          icon={<Feather name="edit-2" size={18} color="#EAE3F0" />}
+          icon={<Feather name="edit-2" size={18} color={colors.light.main} />}
         />
         <View className="h-3" />
         <Button
           title="Excluir / Arquivar"
           variant="danger"
           onPress={onDeletarProduto}
-          icon={<Feather name="trash-2" size={18} color="#EAE3F0" />}
+          icon={<Feather name="trash-2" size={18} color={colors.light.main} />}
         />
         <View className="h-3" />
         <Button title="Voltar para Lista" variant="secondary" onPress={onCancelEditar} />

@@ -1,6 +1,7 @@
 import { Linking } from 'react-native';
 import { PendingSale, SaleInstallment } from '@/services/recebimentos.service';
 import { DueStatus, RouteStop } from './types';
+import { colors } from '@/theme/color';
 
 export const saleTotal        = (sale: PendingSale) => sale.sale_items.reduce((acc, i) => acc + i.price * i.quantity, 0);
 export const renderPrice      = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
@@ -42,10 +43,10 @@ export const getStatus = (dueDate: string, ref?: Date): DueStatus => {
 };
 
 export const STATUS: Record<DueStatus, { label: string; color: string }> = {
-  overdue: { label: 'Atrasado',    color: '#DF1515' },
-  today:   { label: 'Vence hoje',  color: '#FF8C00' },
-  week:    { label: 'Esta semana', color: '#758C36' },
-  future:  { label: 'Em dia',      color: '#5A189A' },
+  overdue: { label: 'Atrasado',    color: colors.danger.main },
+  today:   { label: 'Vence hoje',  color: colors.warning.main },
+  week:    { label: 'Esta semana', color: colors.secondary.dark },
+  future:  { label: 'Em dia',      color: colors.primary.main },
 };
 
 export function openDrivingNav(address: string, city: string) {

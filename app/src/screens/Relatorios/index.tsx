@@ -9,6 +9,7 @@ import { ProdutoMaisVendido } from './ProdutoMaisVendido';
 import { ClienteMaisCompra } from './ClienteMaisCompra';
 import { FaturamentoMensal } from './FaturamentoMensal';
 import { VendasEmAberto } from './VendasEmAberto';
+import { colors } from '@/theme/color';
 
 type ReportStep = 'index' | 'produtos' | 'clientes' | 'faturamento' | 'aberto';
 
@@ -33,7 +34,7 @@ export function Relatorios() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="page-header">
           <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3 p-1">
-            <Feather name="chevron-left" size={28} color="#3C096C" />
+            <Feather name="chevron-left" size={28} color={colors.primary.dark} />
           </TouchableOpacity>
           <Text className="page-title">Relatórios</Text>
         </View>
@@ -46,22 +47,22 @@ export function Relatorios() {
               onPress={() => setStep(r.step)}
               style={{
                 flexDirection: 'row', alignItems: 'center',
-                backgroundColor: '#fff', borderRadius: 14, padding: 16,
-                borderWidth: 1, borderColor: '#E1DAE8', marginBottom: 10,
+                backgroundColor: 'white', borderRadius: 14, padding: 16,
+                borderWidth: 1, borderColor: colors.light.dark, marginBottom: 10,
               }}
             >
               <View style={{
                 width: 44, height: 44, borderRadius: 12,
-                backgroundColor: '#EAE3F0', alignItems: 'center', justifyContent: 'center',
+                backgroundColor: colors.light.main, alignItems: 'center', justifyContent: 'center',
                 marginRight: 14,
               }}>
-                <Feather name={r.icon as any} size={22} color="#3C096C" />
+                <Feather name={r.icon as any} size={22} color={colors.primary.dark} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: '#3C096C' }}>{r.title}</Text>
-                <Text style={{ fontSize: 12, color: '#8B5A96', marginTop: 2 }}>{r.subtitle}</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: colors.primary.dark }}>{r.title}</Text>
+                <Text style={{ fontSize: 12, color: colors.primary.light, marginTop: 2 }}>{r.subtitle}</Text>
               </View>
-              <Feather name="chevron-right" size={20} color="#8B5A96" />
+              <Feather name="chevron-right" size={20} color={colors.primary.light} />
             </TouchableOpacity>
           ))}
         </View>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { colors } from '@/theme/color';
 
 export interface QuantitySelectorProps {
   value?: number;
@@ -31,13 +32,13 @@ export function QuantitySelector({ value, onChange, label, min = 0, displayText 
       )}
       <View className="flex-row items-center justify-between px-2 pb-2.5 pt-1">
         <TouchableOpacity onPress={() => handleUpdate(quantity - 1)} className="p-2">
-          <Feather name="minus" size={18} color="#5A189A" />
+          <Feather name="minus" size={18} color={colors.primary.main} />
         </TouchableOpacity>
         <Text className="text-base text-primary-dark font-bold">
           {displayText ?? quantity}
         </Text>
         <TouchableOpacity onPress={() => handleUpdate(quantity + 1)} className="p-2">
-          <Feather name="plus" size={18} color="#5A189A" />
+          <Feather name="plus" size={18} color={colors.primary.main} />
         </TouchableOpacity>
       </View>
     </View>

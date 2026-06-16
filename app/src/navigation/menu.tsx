@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useSync } from '../context/SyncContext';
+import { colors } from '@/theme/color';
 
 type NavItem = {
   label: string;
@@ -14,10 +15,10 @@ type NavItem = {
 };
 
 const SYNC_STATUS_CONFIG = {
-  idle:    { color: '#8B5A96', label: 'Nunca sincronizado' },
-  syncing: { color: '#4285F4', label: 'Sincronizando...' },
-  synced:  { color: '#1B8A3D', label: 'Sincronizado' },
-  error:   { color: '#DF1515', label: 'Erro na sincronização' },
+  idle:    { color: colors.primary.light, label: 'Nunca sincronizado' },
+  syncing: { color: colors.info.main, label: 'Sincronizando...' },
+  synced:  { color: colors.success.main, label: 'Sincronizado' },
+  error:   { color: colors.danger.main, label: 'Erro na sincronização' },
 };
 
 export default function Menu() {
@@ -65,10 +66,10 @@ export default function Menu() {
           width: 44, height: 44, borderRadius: 22,
           backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{initials}</Text>
+          <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>{initials}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }} numberOfLines={1}>
+          <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }} numberOfLines={1}>
             {fullName || email}
           </Text>
           <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }} numberOfLines={1}>
@@ -94,7 +95,7 @@ export default function Menu() {
             onPress={() => navigate(item.screen!)}
           >
             <Feather name={item.icon as any} size={22} color="rgba(255,255,255,0.7)" />
-            <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff' }}>{item.label}</Text>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: 'white' }}>{item.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -109,7 +110,7 @@ export default function Menu() {
           onPress={() => navigate('Relatorios')}
         >
           <Feather name="bar-chart-2" size={22} color="rgba(255,255,255,0.7)" />
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff' }}>Relatórios</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: 'white' }}>Relatórios</Text>
         </TouchableOpacity>
       </View>
 
@@ -121,11 +122,11 @@ export default function Menu() {
         {/* Status badge */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 }}>
           {status === 'syncing' ? (
-            <ActivityIndicator size="small" color="#4285F4" />
+            <ActivityIndicator size="small" color={colors.info.main} />
           ) : (
             <View style={{
               width: 10, height: 10, borderRadius: 5,
-              backgroundColor: hasPending ? '#FF8C00' : syncCfg.color,
+              backgroundColor: hasPending ? colors.warning.main : syncCfg.color,
             }} />
           )}
           <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>
@@ -133,10 +134,10 @@ export default function Menu() {
           </Text>
           {hasPending && (
             <View style={{
-              backgroundColor: '#DF1515', borderRadius: 10,
+              backgroundColor: colors.danger.main, borderRadius: 10,
               paddingHorizontal: 6, paddingVertical: 2,
             }}>
-              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{pendingCount}</Text>
+              <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>{pendingCount}</Text>
             </View>
           )}
         </View>
@@ -151,13 +152,13 @@ export default function Menu() {
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Feather name="zap" size={18} color="rgba(255,255,255,0.65)" />
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>Sync automático</Text>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: 'white' }}>Sync automático</Text>
           </View>
           <Switch
             value={autoSync}
             onValueChange={setAutoSync}
-            trackColor={{ false: 'rgba(255,255,255,0.15)', true: '#758C36' }}
-            thumbColor={autoSync ? '#C4D680' : 'rgba(255,255,255,0.6)'}
+            trackColor={{ false: 'rgba(255,255,255,0.15)', true: colors.secondary.dark }}
+            thumbColor={autoSync ? colors.secondary.light : 'rgba(255,255,255,0.6)'}
           />
         </View>
 

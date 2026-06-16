@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Button, Input, QuantitySelector, Select } from '@/components';
 import { Product } from '@/services/products.service';
+import { colors } from '@/theme/color';
 
 interface CartItem { product: Product; quantity: number; price: number; }
 
@@ -34,7 +35,7 @@ export function CartView({
       <View className="flex-row items-center justify-between mb-2 px-1">
         <Text className="text-base font-bold text-primary-dark">Carrinho</Text>
         <View className="flex-row items-center gap-1">
-          <Feather name="shopping-bag" size={13} color="#5A189A" />
+          <Feather name="shopping-bag" size={13} color={colors.primary.main} />
           <Text className="text-xs font-semibold text-primary">
             {cart.length} item{cart.length !== 1 ? 's' : ''}
           </Text>
@@ -46,7 +47,7 @@ export function CartView({
           <View
             key={idx}
             className="flex-row items-center justify-between py-2.5"
-            style={{ borderBottomWidth: idx < cart.length - 1 ? 1 : 0, borderBottomColor: '#E1DAE8' }}
+            style={{ borderBottomWidth: idx < cart.length - 1 ? 1 : 0, borderBottomColor: colors.light.dark }}
           >
             <View className="flex-1 mr-3">
               <Text className="text-sm font-bold text-primary-dark" numberOfLines={1}>
@@ -67,7 +68,7 @@ export function CartView({
           </View>
         ))}
 
-        <View className="flex-row justify-between items-center mt-3 pt-3" style={{ borderTopWidth: 2, borderTopColor: '#3C096C' }}>
+        <View className="flex-row justify-between items-center mt-3 pt-3" style={{ borderTopWidth: 2, borderTopColor: colors.primary.dark }}>
           <Text className="text-base font-bold text-primary-dark">Total</Text>
           <Text className="text-xl font-bold text-primary-dark">{renderPrice(total)}</Text>
         </View>
@@ -108,7 +109,7 @@ export function CartView({
           className="flex-1"
           onPress={onRegister}
           disabled={loading}
-          icon={loading ? undefined : <Feather name="check" size={16} color="#0E0F0C" />}
+          icon={loading ? undefined : <Feather name="check" size={16} color={colors.dark.main} />}
         />
       </View>
     </View>

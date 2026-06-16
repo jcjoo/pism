@@ -6,6 +6,7 @@ import { Client } from '@/services/clients.service';
 import { Product } from '@/services/products.service';
 import { StatusFilter } from './types';
 import { formatDate } from './helpers';
+import { colors } from '@/theme/color';
 
 interface SaleFilterStepProps {
   filterClient:    Client | null;
@@ -29,10 +30,10 @@ function StatusChip({ label, active, onPress }: { label: string; active: boolean
       onPress={onPress}
       style={{
         paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999,
-        backgroundColor: active ? '#3C096C' : '#E1DAE8',
+        backgroundColor: active ? colors.primary.dark : colors.light.dark,
       }}
     >
-      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : '#3C096C' }}>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? 'white' : colors.primary.dark }}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -89,7 +90,7 @@ export function SaleFilterStep({
           className="flex-1"
           onPress={onSearch}
           disabled={loading}
-          icon={loading ? undefined : <Feather name="search" size={15} color="#0E0F0C" />}
+          icon={loading ? undefined : <Feather name="search" size={15} color={colors.dark.main} />}
         />
       </View>
     </View>

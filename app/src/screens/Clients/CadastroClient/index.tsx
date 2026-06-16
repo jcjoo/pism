@@ -9,6 +9,7 @@ import { ClientData, GeoStatus } from "./types";
 import { GeoBadge } from "./GeoBadge";
 import { AddressInput } from "./AddressInput";
 import { LocationModal } from "./LocationModal";
+import { colors } from '@/theme/color';
 
 interface ClientProps {
   client: ClientData;
@@ -268,7 +269,7 @@ export default function CadastroClient({ client, step, onCancelCadastrar, onCada
             title={step === 'edit' ? 'Salvar Alterações' : 'Cadastrar Cliente'}
             variant="primary-dark"
             onPress={onGravar}
-            icon={<Feather name="check" size={20} color="#EAE3F0" />}
+            icon={<Feather name="check" size={20} color={colors.light.main} />}
           />
           <View className="h-3" />
           <Button title="Cancelar" variant="secondary" onPress={onCancelCadastrar} />

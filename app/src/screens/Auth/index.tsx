@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Input, Button, FormScrollView, useToast } from '../../components';
 import { supabase } from '../../services/supabase';
+import { colors } from '@/theme/color';
 
 const REDIRECT_URL = 'salespro://reset-password';
 
@@ -73,7 +74,7 @@ export function Auth() {
       <View className="screen">
         <FormScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
           <View className="items-center mb-10">
-            <Feather name="lock" size={52} color="#3C096C" />
+            <Feather name="lock" size={52} color={colors.primary.dark} />
             <Text className="text-[28px] font-bold text-primary-dark mt-3">Redefinir senha</Text>
             <Text className="text-sm text-primary-light text-center mt-2">
               Enviaremos um link para o seu email com instruções para criar uma nova senha.
@@ -94,7 +95,7 @@ export function Auth() {
             onPress={handleForgotPassword}
             disabled={loading}
             className="mt-4"
-            icon={loading ? undefined : <Feather name="send" size={18} color="#0E0F0C" />}
+            icon={loading ? undefined : <Feather name="send" size={18} color={colors.dark.main} />}
           />
 
           <TouchableOpacity className="items-center mt-5" onPress={() => setMode('login')}>
@@ -110,7 +111,7 @@ export function Auth() {
       <FormScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
 
         <View className="items-center mb-12">
-          <Feather name="shopping-bag" size={64} color="#3C096C" />
+          <Feather name="shopping-bag" size={64} color={colors.primary.dark} />
           <Text className="text-[32px] font-bold text-dark mt-2">SalesPro</Text>
         </View>
 

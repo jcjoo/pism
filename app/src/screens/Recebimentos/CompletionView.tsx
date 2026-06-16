@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { Button } from '@/components';
 import { RouteStop } from './types';
 import { renderPrice } from './helpers';
+import { colors } from '@/theme/color';
 
 interface CompletionViewProps {
   received:       number;
@@ -16,7 +17,7 @@ export function CompletionView({ received, totalCollected, skipped, onBack }: Co
   return (
     <View className="flex-1 p-6 justify-center pb-[120px]">
       <View className="bg-white rounded-[20px] p-8 items-center mb-4 elevation-2">
-        <Feather name="check-circle" size={64} color="#758C36" />
+        <Feather name="check-circle" size={64} color={colors.secondary.dark} />
         <Text className="text-2xl font-bold text-primary-dark mt-4 mb-6">Rota concluída!</Text>
 
         <View className="flex-row w-full mb-5">

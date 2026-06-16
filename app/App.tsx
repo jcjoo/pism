@@ -11,6 +11,7 @@ import { SyncProvider } from '@/context/SyncContext';
 import { Button, Input } from '@/components';
 import { supabase } from '@/services/supabase';
 import { Feather } from '@expo/vector-icons';
+import { colors } from '@/theme/color';
 
 function parseHashParams(url: string): Record<string, string> {
   const hash = url.split('#')[1];
@@ -62,22 +63,22 @@ function ResetPasswordModal({ visible, onDone }: { visible: boolean; onDone: () 
           <View style={{ alignItems: 'center', marginBottom: 32 }}>
             <View style={{
               width: 72, height: 72, borderRadius: 36,
-              backgroundColor: '#EAE3F0', alignItems: 'center', justifyContent: 'center',
+              backgroundColor: colors.light.main, alignItems: 'center', justifyContent: 'center',
               marginBottom: 16,
             }}>
-              <Feather name="lock" size={32} color="#3C096C" />
+              <Feather name="lock" size={32} color={colors.primary.dark} />
             </View>
-            <Text style={{ fontSize: 24, fontWeight: '700', color: '#3C096C', marginBottom: 6 }}>
+            <Text style={{ fontSize: 24, fontWeight: '700', color: colors.primary.dark, marginBottom: 6 }}>
               Nova senha
             </Text>
-            <Text style={{ fontSize: 14, color: '#8B5A96', textAlign: 'center' }}>
+            <Text style={{ fontSize: 14, color: colors.primary.light, textAlign: 'center' }}>
               Escolha uma senha segura para sua conta.
             </Text>
           </View>
 
           <View style={{
-            backgroundColor: '#fff', borderRadius: 20, padding: 24,
-            borderWidth: 1, borderColor: '#E1DAE8',
+            backgroundColor: 'white', borderRadius: 20, padding: 24,
+            borderWidth: 1, borderColor: colors.light.dark,
           }}>
             <Input
               label="Nova senha"
@@ -98,7 +99,7 @@ function ResetPasswordModal({ visible, onDone }: { visible: boolean; onDone: () 
               variant="secondary"
               onPress={handleSave}
               disabled={saving}
-              icon={saving ? undefined : <Feather name="check" size={18} color="#0E0F0C" />}
+              icon={saving ? undefined : <Feather name="check" size={18} color={colors.dark.main} />}
             />
           </View>
 
@@ -106,7 +107,7 @@ function ResetPasswordModal({ visible, onDone }: { visible: boolean; onDone: () 
             onPress={onDone}
             style={{ alignItems: 'center', marginTop: 20 }}
           >
-            <Text style={{ color: '#8B5A96', fontSize: 14 }}>Cancelar</Text>
+            <Text style={{ color: colors.primary.light, fontSize: 14 }}>Cancelar</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

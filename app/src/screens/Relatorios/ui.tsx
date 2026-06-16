@@ -3,12 +3,13 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'rea
 import { Feather } from '@expo/vector-icons';
 import { PeriodFilter } from '@/services/relatorios.service';
 import { PERIODS, RANK_COLORS, RANK_DEFAULT } from './helpers';
+import { colors } from '@/theme/color';
 
 export function PageHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <View className="page-header">
       <TouchableOpacity onPress={onBack} className="mr-3 p-1">
-        <Feather name="chevron-left" size={28} color="#3C096C" />
+        <Feather name="chevron-left" size={28} color={colors.primary.dark} />
       </TouchableOpacity>
       <Text className="page-title">{title}</Text>
     </View>
@@ -76,15 +77,15 @@ export function TopCard({ rank, title, stats }: {
         }}>
           <Text style={{ fontWeight: '800', fontSize: 15, color: c.text }}>{rank + 1}</Text>
         </View>
-        <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: '#3C096C' }} numberOfLines={1}>
+        <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: colors.primary.dark }} numberOfLines={1}>
           {title}
         </Text>
       </View>
       <View style={{ flexDirection: 'row', gap: 24 }}>
         {stats.map(s => (
           <View key={s.label}>
-            <Text style={{ fontSize: 11, color: '#8B5A96', fontWeight: '600', marginBottom: 2 }}>{s.label}</Text>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: '#3C096C' }}>{s.value}</Text>
+            <Text style={{ fontSize: 11, color: colors.primary.light, fontWeight: '600', marginBottom: 2 }}>{s.label}</Text>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: colors.primary.dark }}>{s.value}</Text>
           </View>
         ))}
       </View>
@@ -94,7 +95,7 @@ export function TopCard({ rank, title, stats }: {
 
 export function PropBar({ ratio, color }: { ratio: number; color: string }) {
   return (
-    <View style={{ height: 4, backgroundColor: '#EAE3F0', borderRadius: 2, marginBottom: 6, marginTop: 8 }}>
+    <View style={{ height: 4, backgroundColor: colors.light.main, borderRadius: 2, marginBottom: 6, marginTop: 8 }}>
       <View style={{ height: 4, borderRadius: 2, backgroundColor: color, width: `${Math.round(ratio * 100)}%` }} />
     </View>
   );
@@ -103,7 +104,7 @@ export function PropBar({ ratio, color }: { ratio: number; color: string }) {
 export function Loading() {
   return (
     <View style={{ paddingTop: 60, alignItems: 'center' }}>
-      <ActivityIndicator size="large" color="#3C096C" />
+      <ActivityIndicator size="large" color={colors.primary.dark} />
     </View>
   );
 }

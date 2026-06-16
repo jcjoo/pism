@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { colors } from '@/theme/color';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -20,10 +21,10 @@ export function useToast() {
 }
 
 const CONFIG: Record<ToastType, { icon: string; color: string; bg: string; border: string }> = {
-  success: { icon: 'check-circle', color: '#1B8A3D', bg: '#E6F7EC', border: '#1B8A3D' },
-  error:   { icon: 'x-circle',     color: '#DF1515', bg: '#FFF0F0', border: '#DF1515' },
-  warning: { icon: 'alert-circle', color: '#B86E00', bg: '#FFF8E6', border: '#B86E00' },
-  info:    { icon: 'info',         color: '#5A189A', bg: '#EAE3F0', border: '#5A189A' },
+  success: { icon: 'check-circle', color: colors.success.main, bg: colors.success.light, border: colors.success.main },
+  error:   { icon: 'x-circle',     color: colors.danger.main, bg: colors.danger.light, border: colors.danger.main },
+  warning: { icon: 'alert-circle', color: colors.warning.dark, bg: colors.warning.light, border: colors.warning.dark },
+  info:    { icon: 'info',         color: colors.primary.main, bg: colors.light.main, border: colors.primary.main },
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -80,7 +81,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             alignItems: 'center',
             borderLeftWidth: 4,
             borderLeftColor: cfg.border,
-            shadowColor: '#000',
+            shadowColor: 'black',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.12,
             shadowRadius: 6,

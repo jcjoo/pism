@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { colors } from '@/theme/color';
 
 interface ConfirmOptions {
   title: string;
@@ -46,10 +47,10 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: '#F8F5FC', borderRadius: 18, padding: 24 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#3C096C', marginBottom: 8 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.primary.dark, marginBottom: 8 }}>
               {options.title}
             </Text>
-            <Text style={{ fontSize: 14, color: '#5A189A', lineHeight: 20, marginBottom: 24 }}>
+            <Text style={{ fontSize: 14, color: colors.primary.main, lineHeight: 20, marginBottom: 24 }}>
               {options.message}
             </Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -57,10 +58,10 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 onPress={handleCancel}
                 style={{
                   flex: 1, paddingVertical: 12, borderRadius: 10,
-                  backgroundColor: '#EAE3F0', alignItems: 'center',
+                  backgroundColor: colors.light.main, alignItems: 'center',
                 }}
               >
-                <Text style={{ fontWeight: '600', color: '#3C096C', fontSize: 15 }}>
+                <Text style={{ fontWeight: '600', color: colors.primary.dark, fontSize: 15 }}>
                   {options.cancelText ?? 'Cancelar'}
                 </Text>
               </TouchableOpacity>
@@ -68,11 +69,11 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 onPress={handleConfirm}
                 style={{
                   flex: 1, paddingVertical: 12, borderRadius: 10,
-                  backgroundColor: options.destructive ? '#DF1515' : '#3C096C',
+                  backgroundColor: options.destructive ? colors.danger.main : colors.primary.dark,
                   alignItems: 'center',
                 }}
               >
-                <Text style={{ fontWeight: '600', color: '#fff', fontSize: 15 }}>
+                <Text style={{ fontWeight: '600', color: 'white', fontSize: 15 }}>
                   {options.confirmText ?? 'Confirmar'}
                 </Text>
               </TouchableOpacity>

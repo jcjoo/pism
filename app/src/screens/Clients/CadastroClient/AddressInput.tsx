@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { AddressSuggestion } from '@/services/geocoding.service';
+import { colors } from '@/theme/color';
 
 interface AddressInputProps {
   value:               string;
@@ -21,7 +22,7 @@ export function AddressInput({
 }: AddressInputProps) {
   return (
     <View>
-      <Text style={{ fontSize: 11, fontWeight: '700', color: '#3C096C', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary.dark, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
         Endereço
       </Text>
       <View style={{
@@ -32,30 +33,30 @@ export function AddressInput({
         <TextInput
           style={{ flex: 1, fontSize: 14, color: '#1A0030', paddingVertical: 10 }}
           placeholder="Rua, número, bairro..."
-          placeholderTextColor="#8B5A96"
+          placeholderTextColor={colors.primary.light}
           value={value}
           onChangeText={onChangeText}
           onFocus={onFocus}
           multiline={false}
         />
         {suggestionsLoading && (
-          <ActivityIndicator size="small" color="#5A189A" style={{ marginLeft: 6 }} />
+          <ActivityIndicator size="small" color={colors.primary.main} style={{ marginLeft: 6 }} />
         )}
         {!suggestionsLoading && (value?.length ?? 0) > 0 && (
           <TouchableOpacity
             onPress={onClear}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Feather name="x" size={15} color="#8B5A96" />
+            <Feather name="x" size={15} color={colors.primary.light} />
           </TouchableOpacity>
         )}
       </View>
 
       {showSuggestions && suggestions.length > 0 && (
         <View style={{
-          backgroundColor: '#fff', borderRadius: 10, marginTop: 4,
-          borderWidth: 1, borderColor: '#E1DAE8',
-          elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+          backgroundColor: 'white', borderRadius: 10, marginTop: 4,
+          borderWidth: 1, borderColor: colors.light.dark,
+          elevation: 6, shadowColor: 'black', shadowOffset: { width: 0, height: 3 },
           shadowOpacity: 0.1, shadowRadius: 6, overflow: 'hidden',
         }}>
           {suggestions.map((s, i) => (
@@ -70,12 +71,12 @@ export function AddressInput({
               }}
               activeOpacity={0.7}
             >
-              <Feather name="map-pin" size={14} color="#5A189A" style={{ marginTop: 2 }} />
+              <Feather name="map-pin" size={14} color={colors.primary.main} style={{ marginTop: 2 }} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 13, color: '#1A0030', fontWeight: '500' }} numberOfLines={1}>
                   {s.addressText || s.displayName.split(',')[0]}
                 </Text>
-                <Text style={{ fontSize: 11, color: '#8B5A96', marginTop: 1 }} numberOfLines={1}>
+                <Text style={{ fontSize: 11, color: colors.primary.light, marginTop: 1 }} numberOfLines={1}>
                   {[s.city, s.stateUF].filter(Boolean).join(' · ')}
                   {s.postcode ? ` · ${s.postcode}` : ''}
                 </Text>
@@ -86,7 +87,7 @@ export function AddressInput({
             onPress={onCloseSuggestions}
             style={{ alignItems: 'center', paddingVertical: 8, backgroundColor: '#FAF8FC' }}
           >
-            <Text style={{ fontSize: 11, color: '#8B5A96' }}>Fechar sugestões</Text>
+            <Text style={{ fontSize: 11, color: colors.primary.light }}>Fechar sugestões</Text>
           </TouchableOpacity>
         </View>
       )}

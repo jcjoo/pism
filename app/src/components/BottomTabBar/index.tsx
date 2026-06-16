@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { colors } from '@/theme/color';
 
 interface TabBarProps {
   activeTab: "inicio" | "novavenda" | "vendas" | "rota";
@@ -29,7 +30,7 @@ export function BottomTabBar({ activeTab, onTabPress }: TabBarProps) {
               <Feather
                 name={tab.icon as any}
                 size={20}
-                color={isActive ? "#3C096C" : "#5A189A"}
+                color={isActive ? colors.primary.dark : colors.primary.main}
               />
               {isActive && (
                 <Text className="text-xs font-bold text-primary-dark mt-1">{tab.label}</Text>
